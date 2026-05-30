@@ -1,5 +1,7 @@
 import { Settings } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+
 /** Generic "coming soon" page for nav modules not yet built. */
 export function Placeholder({ name }: { name: string }) {
   return (
@@ -19,12 +21,13 @@ export function Placeholder({ name }: { name: string }) {
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           {["Loading skeletons", "Empty states", "Permission-gated", "Bilingual EN / සිං"].map(
             (tag) => (
-              <span
+              <Badge
                 key={tag}
-                className="bg-secondary text-muted-foreground rounded-full px-3 py-1 text-xs font-semibold"
+                variant="secondary"
+                className="text-muted-foreground rounded-full px-3 py-1 font-semibold"
               >
                 {tag}
-              </span>
+              </Badge>
             ),
           )}
         </div>
