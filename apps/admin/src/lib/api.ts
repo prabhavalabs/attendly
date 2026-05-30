@@ -108,4 +108,13 @@ export const api = {
     request<T>(path, { ...opts, method: "PATCH", body }),
   delete: <T>(path: string, opts?: Omit<RequestOptions, "method" | "body">) =>
     request<T>(path, { ...opts, method: "DELETE" }),
+  /** Authenticated GET returning a Blob (e.g. a generated PDF). */
+  blob: async (path: string): Promise<Blob> => {
+    const headers: Record<string, string> = {};
+    const token = hooks.getAccessToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE_URL}${path}`, { headers });
+    if (!res.ok) throw new ApiError(res.status, "request_failed");
+    return res.blob();
+  },
 };
