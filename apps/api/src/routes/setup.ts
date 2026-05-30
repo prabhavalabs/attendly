@@ -61,7 +61,7 @@ setupRoutes.post("/", async (c) => {
     db.prepare(`INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`).bind(userId, ownerRoleId),
     db
       .prepare(`INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES ('org_name', ?, ?)`)
-      .bind(body.org_name ?? "ClassDesk", now),
+      .bind(body.org_name ?? "attendly", now),
     db
       .prepare(`INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES ('currency', 'LKR', ?)`)
       .bind(now),
