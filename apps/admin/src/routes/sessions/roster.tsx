@@ -4,12 +4,13 @@ import { ChevronLeft, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import type { SessionStatus, RosterEntry } from "@tuition/shared";
 
-import { useRoster, useUpdateSession } from "@/hooks/use-sessions";
+import { useRoster, useUpdateSession, useMarkAttendance, useClearAttendance } from "@/hooks/use-sessions";
 import { formatDate } from "@/lib/format";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ClassChip } from "@/components/classes/band";
 import { SessionStatusBadge } from "@/components/sessions/session-status";
+import { AttendanceMarker } from "@/components/sessions/attendance-marker";
 import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,8 @@ export default function SessionRosterPage() {
   const { id } = useParams({ strict: false }) as { id: string };
   const { data, isLoading, isError } = useRoster(id);
   const updateSession = useUpdateSession(id);
+  const markAttendance = useMarkAttendance(id);
+  const clearAttendance = useClearAttendance(id);
   const [topic, setTopic] = useState<string | null>(null);
 
   if (isLoading) {
@@ -133,18 +136,30 @@ export default function SessionRosterPage() {
                   <div className="truncate text-sm font-semibold">{e.student.full_name}</div>
                   <div className="text-muted-foreground tnum text-xs">{e.student.reg_no}</div>
                 </div>
-                {e.status ? (
-                  <StatusBadge tone={ATT_TONE[e.status]} className="capitalize">{e.status}</StatusBadge>
-                ) : (
-                  <span className="text-muted-foreground text-xs">Not marked</span>
-                )}
+                <Can
+                  perm="attendance.record"
+                  fallback={
+                    e.status ? (
+                      <StatusBadge tone={ATT_TONE[e.status]} className="capitalize">{e.status}</StatusBadge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Not marked</span>
+                    )
+                  }
+                >
+                  <AttendanceMarker
+                    status={e.status}
+                    disabled={markAttendance.isPending || clearAttendance.isPending}
+                    onMark={(status) => markAttendance.mutate({ studentId: e.student.id, status })}
+                    onClear={() => clearAttendance.mutate(e.student.id)}
+                  />
+                </Can>
               </li>
             ))}
           </ul>
         )}
       </div>
       <p className="text-muted-foreground mt-3 text-center text-xs">
-        Attendance marking arrives with the door check-in (M3).
+        Mark students above, or scan their cards at the door with the mobile app.
       </p>
     </div>
   );

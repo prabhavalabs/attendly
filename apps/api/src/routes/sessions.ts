@@ -150,6 +150,16 @@ sessionsRoutes.get("/:id/roster", requirePermission("session.read"), async (c) =
   return c.json({ session: await getSession(db, id), roster });
 });
 
+/** DELETE /api/sessions/:id/attendance/:studentId — clear a student's mark. */
+sessionsRoutes.delete("/:id/attendance/:studentId", requirePermission("attendance.record"), async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const studentId = c.req.param("studentId");
+  await db.prepare(`DELETE FROM attendance WHERE session_id = ? AND student_id = ?`).bind(id, studentId).run();
+  await writeAudit(db, { actorId: c.get("user").id, action: "attendance.clear", entityType: "session", entityId: id, after: { student_id: studentId } });
+  return c.json({ ok: true });
+});
+
 /** PATCH /api/sessions/:id — open/close/cancel, set topic / substitute. */
 sessionsRoutes.patch("/:id", requirePermission("session.manage"), async (c) => {
   const body = await parseBody(c, updateSessionSchema);
