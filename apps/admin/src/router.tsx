@@ -20,6 +20,7 @@ import TimetablePage from "@/routes/timetable/index";
 import SessionsPage from "@/routes/sessions/index";
 import SessionRosterPage from "@/routes/sessions/roster";
 import AttendancePage from "@/routes/attendance/index";
+import BillingPage from "@/routes/billing/index";
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -122,6 +123,13 @@ const attendanceRoute = createRoute({
   component: AttendancePage,
 });
 
+const billingRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/billing",
+  beforeLoad: guard("invoice.read"),
+  component: BillingPage,
+});
+
 function placeholderRoute(path: string, name: string, perm?: string) {
   return createRoute({
     getParentRoute: () => appRoute,
@@ -132,7 +140,6 @@ function placeholderRoute(path: string, name: string, perm?: string) {
 }
 
 const moduleRoutes = [
-  placeholderRoute("/billing", "Billing", "invoice.read"),
   placeholderRoute("/reports", "Reports", "report.read"),
   placeholderRoute("/notifications", "Notifications", "notification.send"),
   placeholderRoute("/settings", "Settings", "settings.read"),
@@ -151,6 +158,7 @@ const routeTree = rootRoute.addChildren([
     sessionsRoute,
     sessionRosterRoute,
     attendanceRoute,
+    billingRoute,
     ...moduleRoutes,
   ]),
 ]);
