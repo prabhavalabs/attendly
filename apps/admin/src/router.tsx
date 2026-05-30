@@ -12,6 +12,8 @@ import { Placeholder } from "@/routes/placeholder";
 import LoginPage from "@/routes/login";
 import DashboardPage from "@/routes/dashboard";
 import UsersPage from "@/routes/users/index";
+import StudentsPage from "@/routes/students/index";
+import StudentDetailPage from "@/routes/students/detail";
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -58,6 +60,20 @@ const usersRoute = createRoute({
   component: UsersPage,
 });
 
+const studentsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/students",
+  beforeLoad: guard("student.read"),
+  component: StudentsPage,
+});
+
+const studentDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/students/$id",
+  beforeLoad: guard("student.read"),
+  component: StudentDetailPage,
+});
+
 function placeholderRoute(path: string, name: string, perm?: string) {
   return createRoute({
     getParentRoute: () => appRoute,
@@ -68,7 +84,6 @@ function placeholderRoute(path: string, name: string, perm?: string) {
 }
 
 const moduleRoutes = [
-  placeholderRoute("/students", "Students", "student.read"),
   placeholderRoute("/classes", "Classes", "class.read"),
   placeholderRoute("/timetable", "Timetable", "timetable.read"),
   placeholderRoute("/sessions", "Sessions", "session.read"),
@@ -81,7 +96,7 @@ const moduleRoutes = [
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([dashboardRoute, usersRoute, ...moduleRoutes]),
+  appRoute.addChildren([dashboardRoute, usersRoute, studentsRoute, studentDetailRoute, ...moduleRoutes]),
 ]);
 
 export const router = createRouter({
