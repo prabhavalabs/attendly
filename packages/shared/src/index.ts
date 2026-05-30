@@ -17,3 +17,4 @@ export * from "./auth";
 export * from "./students";
 export * from "./classes";
 export * from "./checkin";
+export * from "./billing";

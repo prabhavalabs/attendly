@@ -113,8 +113,25 @@ export async function recordAttendance(
 
 /**
  * Informational payment alert (never blocks check-in, SRS FR-4.5).
- * Invoices arrive in M4; until then nothing is outstanding.
+ * Sums outstanding across the student's unpaid/partial/overdue invoices.
  */
-export async function paymentAlert(_db: Db, _studentId: string): Promise<PaymentAlert> {
-  return { has_outstanding: false, overdue_periods: [], outstanding_minor: 0 };
+export async function paymentAlert(db: Db, studentId: string): Promise<PaymentAlert> {
+  const rows = await db
+    .prepare(
+      `SELECT i.period, i.amount_minor, i.status,
+              (SELECT COALESCE(SUM(p.amount_minor), 0) FROM payments p WHERE p.invoice_id = i.id) AS paid
+         FROM invoices i
+        WHERE i.student_id = ? AND i.status IN ('pending', 'partial', 'overdue')`,
+    )
+    .bind(studentId)
+    .all<{ period: string; amount_minor: number; status: string; paid: number }>();
+
+  let outstanding = 0;
+  const overdue: string[] = [];
+  for (const r of rows.results ?? []) {
+    const due = r.amount_minor - r.paid;
+    if (due > 0) outstanding += due;
+    if (r.status === "overdue") overdue.push(r.period);
+  }
+  return { has_outstanding: outstanding > 0, overdue_periods: overdue, outstanding_minor: outstanding };
 }

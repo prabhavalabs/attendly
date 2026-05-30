@@ -19,6 +19,9 @@ import { lecturersRoutes } from "./routes/lecturers";
 import { classesRoutes } from "./routes/classes";
 import { sessionsRoutes } from "./routes/sessions";
 import { checkinRoutes } from "./routes/checkin";
+import { invoicesRoutes, paymentsRoutes } from "./routes/billing";
+import { reportsRoutes } from "./routes/reports";
+import { generateInvoices, markOverdue } from "./lib/billing";
 
 const DEFAULT_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
 const D1_BOOKMARK_HEADER = "x-d1-bookmark";
@@ -66,10 +69,23 @@ app.route("/api/lecturers", lecturersRoutes);
 app.route("/api/classes", classesRoutes);
 app.route("/api/sessions", sessionsRoutes);
 app.route("/api/checkin", checkinRoutes);
+app.route("/api/invoices", invoicesRoutes);
+app.route("/api/payments", paymentsRoutes);
+app.route("/api/reports", reportsRoutes);
 
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledController, _env: Env, _ctx: ExecutionContext) {
-    // TODO(M4/M5): route by _event.cron → invoice-gen / mark-overdue / dispatch-notifications
+  // Cron triggers (wrangler.toml): monthly invoices, daily overdue marking,
+  // notifications dispatch (M5). Writes go to the primary.
+  async scheduled(event: ScheduledController, env: Env, _ctx: ExecutionContext) {
+    const db = env.DB.withSession("first-primary");
+    if (event.cron === "0 2 1 * *") {
+      const now = new Date();
+      const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+      await generateInvoices(db, { period, actorId: null });
+    } else if (event.cron === "0 3 * * *") {
+      await markOverdue(db);
+    }
+    // "*/30 * * * *" → notification dispatch (M5)
   },
 };
