@@ -11,6 +11,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Placeholder } from "@/routes/placeholder";
 import LoginPage from "@/routes/login";
 import DashboardPage from "@/routes/dashboard";
+import UsersPage from "@/routes/users/index";
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -50,6 +51,13 @@ const dashboardRoute = createRoute({
   component: DashboardPage,
 });
 
+const usersRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/users",
+  beforeLoad: guard("user.read"),
+  component: UsersPage,
+});
+
 function placeholderRoute(path: string, name: string, perm?: string) {
   return createRoute({
     getParentRoute: () => appRoute,
@@ -68,13 +76,12 @@ const moduleRoutes = [
   placeholderRoute("/billing", "Billing", "invoice.read"),
   placeholderRoute("/reports", "Reports", "report.read"),
   placeholderRoute("/notifications", "Notifications", "notification.send"),
-  placeholderRoute("/users", "Users & Roles", "user.read"),
   placeholderRoute("/settings", "Settings", "settings.read"),
 ];
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([dashboardRoute, ...moduleRoutes]),
+  appRoute.addChildren([dashboardRoute, usersRoute, ...moduleRoutes]),
 ]);
 
 export const router = createRouter({
