@@ -7,6 +7,9 @@ import { UserMenu } from "./user-menu";
 import { LangToggle } from "./lang-toggle";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
@@ -26,43 +29,46 @@ export function AppShell() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="bg-card sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
+      <SidebarInset className="h-svh overflow-hidden">
+        <header className="bg-card flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 h-6" />
           <h1 className="text-xl font-bold tracking-tight">{title}</h1>
 
           <div className="ml-auto flex items-center gap-2.5">
-            <div className="bg-background text-muted-foreground hidden items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-2 lg:flex">
-              <Search className="size-4" />
-              <input
-                className="text-foreground w-52 bg-transparent text-sm outline-none placeholder:text-[var(--ink-400)]"
+            <div className="relative hidden lg:block">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                type="search"
                 placeholder="Search students, classes…"
                 aria-label="Search"
+                className="h-9 w-64 pl-9 pr-12"
               />
-              <kbd className="bg-card text-muted-foreground rounded border px-1.5 text-[11px] font-semibold">
+              <kbd className="bg-card text-muted-foreground absolute top-1/2 right-2.5 -translate-y-1/2 rounded border px-1.5 text-[11px] font-semibold">
                 ⌘K
               </kbd>
             </div>
             <LangToggle />
-            <button
-              type="button"
-              className="text-muted-foreground hover:bg-muted hover:text-foreground relative grid size-9 place-items-center rounded-[var(--radius-sm)] border"
+            <Button
+              variant="outline"
+              size="icon"
+              className="relative size-9"
               aria-label="Notifications"
             >
               <Bell className="size-4.5" />
               <span
                 className="absolute top-2 right-2.5 size-1.5 rounded-full"
                 style={{ background: "var(--bad)" }}
+                aria-hidden
               />
-            </button>
+            </Button>
             <UserMenu />
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <ScrollArea className="min-h-0 flex-1">
           <Outlet />
-        </div>
+        </ScrollArea>
       </SidebarInset>
     </SidebarProvider>
   );

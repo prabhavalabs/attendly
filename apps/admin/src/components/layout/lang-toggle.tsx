@@ -1,37 +1,32 @@
-/** EN / සිං segmented toggle (matches the design topbar). */
+/** EN / සිං segmented toggle (shadcn ToggleGroup; matches the design topbar). */
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useUiStore } from "@/lib/ui-store";
-import { cn } from "@/lib/utils";
+
+const ITEM_CLASS =
+  "px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground aria-pressed:bg-card aria-pressed:text-primary aria-pressed:shadow-[var(--sh-flat)]";
 
 export function LangToggle() {
   const language = useUiStore((s) => s.language);
   const setLanguage = useUiStore((s) => s.setLanguage);
 
   return (
-    <div className="bg-background flex rounded-[var(--radius-sm)] border p-[3px]">
-      <button
-        type="button"
-        onClick={() => setLanguage("en")}
-        className={cn(
-          "rounded-md px-2.5 py-1 text-xs font-bold transition-colors",
-          language === "en"
-            ? "bg-card text-primary shadow-[var(--sh-flat)]"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-      >
+    <ToggleGroup
+      value={[language]}
+      onValueChange={(value) => {
+        const next = value[0];
+        if (next === "en" || next === "si") setLanguage(next);
+      }}
+      size="sm"
+      spacing={0}
+      aria-label="Language"
+      className="bg-background gap-0 rounded-[var(--radius-sm)] border p-[3px]"
+    >
+      <ToggleGroupItem value="en" aria-label="English" className={ITEM_CLASS}>
         EN
-      </button>
-      <button
-        type="button"
-        onClick={() => setLanguage("si")}
-        className={cn(
-          "font-sinhala rounded-md px-2.5 py-1 text-xs font-bold transition-colors",
-          language === "si"
-            ? "bg-card text-primary shadow-[var(--sh-flat)]"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-      >
+      </ToggleGroupItem>
+      <ToggleGroupItem value="si" aria-label="Sinhala" className={`font-sinhala ${ITEM_CLASS}`}>
         සිං
-      </button>
-    </div>
+      </ToggleGroupItem>
+    </ToggleGroup>
   );
 }

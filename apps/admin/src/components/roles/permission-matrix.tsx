@@ -1,5 +1,6 @@
 import type { PermissionGroup } from "@tuition/shared";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function PermissionMatrix({
   groups,
@@ -31,7 +32,8 @@ export function PermissionMatrix({
   }
 
   return (
-    <div className="grid max-h-[46vh] gap-3 overflow-y-auto pr-1">
+    <ScrollArea className="max-h-[46vh] pr-3">
+      <div className="grid gap-3">
       {groups.map((group) => {
         const keys = group.permissions.map((p) => p.key);
         const allOn = keys.every((k) => set.has(k));
@@ -68,6 +70,7 @@ export function PermissionMatrix({
           </div>
         );
       })}
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
