@@ -1,0 +1,18 @@
+# Local secrets for `wrangler dev`. Copy to .dev.vars (gitignored) and fill in.
+# In production set these with `wrangler secret put <NAME>`.
+
+# Signs/verifies access tokens (use a long random string).
+JWT_SECRET="dev-only-change-me-to-a-long-random-string"
+
+# AES-GCM key for encrypting stored OAuth tokens (M6). 32+ chars.
+ENCRYPTION_KEY="dev-only-change-me-32-bytes-minimum-secret"
+
+# Google Calendar OAuth (M6) — leave blank until needed.
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+
+# Optional: allows re-running POST /api/setup after the first user exists.
+SETUP_TOKEN=""
+
+# Optional: comma-separated CORS origins (defaults to localhost:5173).
+CORS_ORIGINS="http://localhost:5173"
