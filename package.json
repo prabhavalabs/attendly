@@ -1,0 +1,21 @@
+{
+  "name": "attendly",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ClassDesk — tuition class management system (attendance, billing, notifications)",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  }
+}

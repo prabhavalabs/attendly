@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.output/
+build/
+*.tsbuildinfo
+
+# Turborepo
+.turbo/
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+.dev.vars.*
+wrangler.toml.bak
+
+# Expo / React Native
+.expo/
+apps/mobile/web-build/
+apps/mobile/dist/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# AI generated files
+CLAUDE.md
+AGENTS.md
+.cursor/
+.cursorrules
+.claude/
+.agents/
+.superpowers/
+docs/superpowers/
+.playwright-mcp/
+skills-lock.json
