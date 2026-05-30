@@ -24,3 +24,15 @@ export async function parseBody<T>(c: Context, schema: ZodType<T, ZodTypeDef, un
   }
   return result.data;
 }
+
+/** Validate the query string against a schema (coerces numeric params). */
+export function parseQuery<T>(c: Context, schema: ZodType<T, ZodTypeDef, unknown>): T {
+  const result = schema.safeParse(c.req.query());
+  if (!result.success) {
+    throw new HTTPException(422, {
+      message: "validation_error",
+      cause: result.error.flatten(),
+    });
+  }
+  return result.data;
+}
