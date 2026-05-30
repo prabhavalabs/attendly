@@ -21,6 +21,7 @@ import { sessionsRoutes } from "./routes/sessions";
 import { checkinRoutes } from "./routes/checkin";
 import { invoicesRoutes, paymentsRoutes } from "./routes/billing";
 import { reportsRoutes } from "./routes/reports";
+import { dashboardRoutes } from "./routes/dashboard";
 import { generateInvoices, markOverdue } from "./lib/billing";
 
 const DEFAULT_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
@@ -72,6 +73,7 @@ app.route("/api/checkin", checkinRoutes);
 app.route("/api/invoices", invoicesRoutes);
 app.route("/api/payments", paymentsRoutes);
 app.route("/api/reports", reportsRoutes);
+app.route("/api/dashboard", dashboardRoutes);
 
 export default {
   fetch: app.fetch,

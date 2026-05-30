@@ -88,6 +88,57 @@ export async function markOverdue(db: Db): Promise<number> {
   return res.meta?.changes ?? 0;
 }
 
+export interface DefaulterRow {
+  student: { id: string; reg_no: string; full_name: string; phone: string | null; photo_url: string | null; status: string; card_status: string };
+  outstanding_minor: number;
+  overdue_periods: string[];
+  invoice_count: number;
+}
+
+/** Students with outstanding invoices, sorted by amount due (desc). */
+export async function computeDefaulters(db: Db): Promise<DefaulterRow[]> {
+  const rows = await db
+    .prepare(
+      `SELECT s.id, s.reg_no, s.full_name, s.phone, s.photo_url, s.status, s.card_status,
+              i.period, i.amount_minor, i.status AS inv_status,
+              (SELECT COALESCE(SUM(p.amount_minor), 0) FROM payments p WHERE p.invoice_id = i.id) AS paid
+         FROM invoices i
+         JOIN students s ON s.id = i.student_id AND s.deleted_at IS NULL
+        WHERE i.status IN ('pending', 'partial', 'overdue')
+        ORDER BY s.name_normalized`,
+    )
+    .all<Record<string, unknown>>();
+
+  const byStudent = new Map<string, DefaulterRow>();
+  for (const r of rows.results ?? []) {
+    const id = r.id as string;
+    const entry =
+      byStudent.get(id) ??
+      {
+        student: {
+          id,
+          reg_no: r.reg_no as string,
+          full_name: r.full_name as string,
+          phone: (r.phone as string) ?? null,
+          photo_url: (r.photo_url as string) ?? null,
+          status: r.status as string,
+          card_status: r.card_status as string,
+        },
+        outstanding_minor: 0,
+        overdue_periods: [],
+        invoice_count: 0,
+      };
+    const due = Number(r.amount_minor) - Number(r.paid);
+    if (due > 0) entry.outstanding_minor += due;
+    if (r.inv_status === "overdue") entry.overdue_periods.push(r.period as string);
+    entry.invoice_count += 1;
+    byStudent.set(id, entry);
+  }
+  return [...byStudent.values()]
+    .filter((d) => d.outstanding_minor > 0)
+    .sort((a, b) => b.outstanding_minor - a.outstanding_minor);
+}
+
 /** Next sequential receipt number for the payment's month: RC-YYYYMM-NNNN. */
 export async function nextReceiptNo(db: Db, paidAtIso: string): Promise<string> {
   const ym = paidAtIso.slice(0, 7).replace("-", ""); // YYYYMM
