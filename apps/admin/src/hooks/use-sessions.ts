@@ -4,6 +4,8 @@ import type {
   GenerateSessionsInput,
   UpdateSessionInput,
   RosterEntry,
+  AttendanceStatus,
+  CheckinResult,
 } from "@tuition/shared";
 import { api } from "@/lib/api";
 
@@ -53,5 +55,36 @@ export function useRoster(sessionId: string | undefined) {
     queryFn: () =>
       api.get<{ session: ClassSession; roster: RosterEntry[] }>(`/api/sessions/${sessionId}/roster`),
     enabled: !!sessionId,
+  });
+}
+
+/** Manually mark a student's attendance for a session (edit-prior-record). */
+export function useMarkAttendance(sessionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ studentId, status }: { studentId: string; status: AttendanceStatus }) =>
+      api.post<CheckinResult>("/api/checkin", {
+        session_id: sessionId,
+        student_id: studentId,
+        status,
+        method: "manual",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["roster", sessionId] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+    },
+  });
+}
+
+/** Clear a student's mark for a session. */
+export function useClearAttendance(sessionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (studentId: string) =>
+      api.delete<{ ok: true }>(`/api/sessions/${sessionId}/attendance/${studentId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["roster", sessionId] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+    },
   });
 }
