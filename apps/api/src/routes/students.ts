@@ -15,6 +15,7 @@ import { newId, nowIso } from "../lib/id";
 import { randomToken } from "../lib/crypto";
 import { normalizeName, likeEscape } from "../lib/text";
 import { writeAudit } from "../lib/db";
+import { buildCardPdf } from "../lib/card-pdf";
 import { authenticate, requirePermission } from "../middleware/auth";
 
 const STUDENT_COLS = `id, reg_no, full_name, phone, email, photo_url, card_token,
@@ -241,6 +242,76 @@ studentsRoutes.delete("/:id", requirePermission("student.delete"), async (c) => 
   await db.prepare(`UPDATE students SET deleted_at = ?, updated_at = ? WHERE id = ?`).bind(now, now, id).run();
   await writeAudit(db, { actorId: c.get("user").id, action: "student.delete", entityType: "student", entityId: id });
   return c.json({ ok: true });
+});
+
+/* -------------------------------- Cards ---------------------------------- */
+
+/** POST /api/students/:id/card/issue — (re)issue: mint a new token, activate. */
+studentsRoutes.post("/:id/card/issue", requirePermission("card.issue"), async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const existing = await getStudentRow(db, id);
+  if (!existing) throw new HTTPException(404, { message: "not_found" });
+
+  const token = randomToken(16);
+  const now = nowIso();
+  await db
+    .prepare(
+      `UPDATE students SET card_token = ?, card_status = 'active', card_issued_at = ?, updated_at = ? WHERE id = ?`,
+    )
+    .bind(token, now, now, id)
+    .run();
+  await writeAudit(db, { actorId: c.get("user").id, action: "card.issue", entityType: "student", entityId: id });
+
+  const row = await getStudentRow(db, id);
+  return c.json({ ...row, guardians: await guardiansForStudent(db, id) });
+});
+
+/** POST /api/students/:id/card/revoke — mark the card revoked (or lost). */
+studentsRoutes.post("/:id/card/revoke", requirePermission("card.revoke"), async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  const existing = await getStudentRow(db, id);
+  if (!existing) throw new HTTPException(404, { message: "not_found" });
+
+  let status: "revoked" | "lost" = "revoked";
+  try {
+    const body = (await c.req.json()) as { status?: string };
+    if (body?.status === "lost") status = "lost";
+  } catch {
+    /* empty body is fine */
+  }
+  const now = nowIso();
+  await db.prepare(`UPDATE students SET card_status = ?, updated_at = ? WHERE id = ?`).bind(status, now, id).run();
+  await writeAudit(db, { actorId: c.get("user").id, action: "card.revoke", entityType: "student", entityId: id, after: { card_status: status } });
+
+  const row = await getStudentRow(db, id);
+  return c.json({ ...row, guardians: await guardiansForStudent(db, id) });
+});
+
+/** GET /api/students/:id/card.pdf — printable ID card with QR of the token. */
+studentsRoutes.get("/:id/card.pdf", requirePermission("card.issue"), async (c) => {
+  const db = c.get("db");
+  const row = await getStudentRow(db, c.req.param("id"));
+  if (!row) throw new HTTPException(404, { message: "not_found" });
+
+  const orgRow = await db.prepare(`SELECT value FROM settings WHERE key = 'org_name'`).first<{ value: string }>();
+  const subtitle = row.status === "active" ? `Batch ${new Date(row.created_at).getUTCFullYear()}` : row.status;
+  const pdf = await buildCardPdf({
+    orgName: orgRow?.value ?? "attendly",
+    fullName: row.full_name,
+    regNo: row.reg_no,
+    subtitle,
+    cardToken: row.card_token,
+    active: row.card_status === "active",
+  });
+
+  return new Response(new Uint8Array(pdf), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="card-${row.reg_no}.pdf"`,
+    },
+  });
 });
 
 /* ------------------------------ Guardians -------------------------------- */
