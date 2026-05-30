@@ -1,37 +1,65 @@
-import { Hono } from "hono";
-
 /**
  * ClassDesk API — Cloudflare Worker (Hono).
  *
- * Scaffolding stub. To be fleshed out in M0 (Foundation):
- *   - CORS + dbSession middleware (echoes x-d1-bookmark for replica consistency)
- *   - auth (JWT verify) + requirePermission RBAC middleware
- *   - one route module per domain (students, checkin, billing, ...)
- *   - scheduled() handler routing cron events to invoice/overdue/notify jobs
- *
- * See SRS §6 (API spec) and §11.5 (API app build guide).
+ * Wires CORS, the standard error envelope, the D1 Sessions middleware, and the
+ * M0 auth/RBAC routes. Business modules (students, check-in, billing, …) mount
+ * here as they are built. See SRS §6 (API spec) and §11.5.
  */
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { HTTPException } from "hono/http-exception";
+import type { AppContext, Env } from "./types";
+import { dbSession } from "./middleware/auth";
+import { authRoutes } from "./routes/auth";
+import { setupRoutes } from "./routes/setup";
+import { usersRoutes } from "./routes/users";
+import { rolesRoutes, permissionsRoutes } from "./routes/roles";
 
-export interface Env {
-  DB: D1Database;
-  ASSETS: R2Bucket;
-  JWT_SECRET: string;
-  ENCRYPTION_KEY: string;
-  GOOGLE_CLIENT_ID: string;
-  GOOGLE_CLIENT_SECRET: string;
-}
+const DEFAULT_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
+const D1_BOOKMARK_HEADER = "x-d1-bookmark";
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<AppContext>();
 
+// CORS — allow the admin portal dev origin(s); expose the bookmark header so
+// clients can echo it back for read-after-write consistency.
+app.use("*", (c, next) =>
+  cors({
+    origin: c.env.CORS_ORIGINS ? c.env.CORS_ORIGINS.split(",").map((s) => s.trim()) : DEFAULT_ORIGINS,
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", D1_BOOKMARK_HEADER],
+    exposeHeaders: [D1_BOOKMARK_HEADER],
+    credentials: true,
+  })(c, next),
+);
+
+// Standard error envelope: { error, details? } (SRS §6.1).
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    const body: { error: string; details?: unknown } = { error: err.message };
+    if (err.cause !== undefined) body.details = err.cause;
+    return c.json(body, err.status);
+  }
+  console.error("unhandled_error", err);
+  return c.json({ error: "internal_error" }, 500);
+});
+
+app.notFound((c) => c.json({ error: "not_found" }, 404));
+
+// Health check (unauthenticated).
 app.get("/api/health", (c) => c.json({ ok: true, service: "tuition-api" }));
 
-// TODO(M0): app.route("/api/auth", authRoutes)
-// TODO(M0): app.route("/api/students", studentRoutes)
-// TODO(M0): app.route("/api/checkin", checkinRoutes)
+// Every route below uses a D1 Sessions-API session.
+app.use("/api/*", dbSession);
+
+app.route("/api/auth", authRoutes);
+app.route("/api/setup", setupRoutes);
+app.route("/api/users", usersRoutes);
+app.route("/api/roles", rolesRoutes);
+app.route("/api/permissions", permissionsRoutes);
 
 export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledController, _env: Env, _ctx: ExecutionContext) {
-    // TODO(M4/M5): route by _event.cron -> invoice-gen / mark-overdue / dispatch-notifications
+    // TODO(M4/M5): route by _event.cron → invoice-gen / mark-overdue / dispatch-notifications
   },
 };
