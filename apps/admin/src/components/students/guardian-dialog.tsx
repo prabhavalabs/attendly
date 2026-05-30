@@ -139,7 +139,11 @@ export function GuardianDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Relationship</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      items={guardianRelationshipSchema.options.map((r) => ({ value: r, label: REL_LABELS[r] }))}
+                    >
                       <FormControl>
                         <SelectTrigger className="w-full">
                           <SelectValue />
