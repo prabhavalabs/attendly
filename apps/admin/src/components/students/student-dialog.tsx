@@ -192,7 +192,11 @@ export function StudentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      items={studentStatusSchema.options.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+                    >
                       <FormControl>
                         <SelectTrigger className="w-full">
                           <SelectValue />

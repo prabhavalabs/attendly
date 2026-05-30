@@ -14,6 +14,11 @@ import DashboardPage from "@/routes/dashboard";
 import UsersPage from "@/routes/users/index";
 import StudentsPage from "@/routes/students/index";
 import StudentDetailPage from "@/routes/students/detail";
+import ClassesPage from "@/routes/classes/index";
+import ClassDetailPage from "@/routes/classes/detail";
+import TimetablePage from "@/routes/timetable/index";
+import SessionsPage from "@/routes/sessions/index";
+import SessionRosterPage from "@/routes/sessions/roster";
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -74,6 +79,41 @@ const studentDetailRoute = createRoute({
   component: StudentDetailPage,
 });
 
+const classesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/classes",
+  beforeLoad: guard("class.read"),
+  component: ClassesPage,
+});
+
+const classDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/classes/$id",
+  beforeLoad: guard("class.read"),
+  component: ClassDetailPage,
+});
+
+const timetableRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/timetable",
+  beforeLoad: guard("timetable.read"),
+  component: TimetablePage,
+});
+
+const sessionsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/sessions",
+  beforeLoad: guard("session.read"),
+  component: SessionsPage,
+});
+
+const sessionRosterRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/sessions/$id",
+  beforeLoad: guard("session.read"),
+  component: SessionRosterPage,
+});
+
 function placeholderRoute(path: string, name: string, perm?: string) {
   return createRoute({
     getParentRoute: () => appRoute,
@@ -84,9 +124,6 @@ function placeholderRoute(path: string, name: string, perm?: string) {
 }
 
 const moduleRoutes = [
-  placeholderRoute("/classes", "Classes", "class.read"),
-  placeholderRoute("/timetable", "Timetable", "timetable.read"),
-  placeholderRoute("/sessions", "Sessions", "session.read"),
   placeholderRoute("/attendance", "Attendance", "attendance.record"),
   placeholderRoute("/billing", "Billing", "invoice.read"),
   placeholderRoute("/reports", "Reports", "report.read"),
@@ -96,7 +133,18 @@ const moduleRoutes = [
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([dashboardRoute, usersRoute, studentsRoute, studentDetailRoute, ...moduleRoutes]),
+  appRoute.addChildren([
+    dashboardRoute,
+    usersRoute,
+    studentsRoute,
+    studentDetailRoute,
+    classesRoute,
+    classDetailRoute,
+    timetableRoute,
+    sessionsRoute,
+    sessionRosterRoute,
+    ...moduleRoutes,
+  ]),
 ]);
 
 export const router = createRouter({
