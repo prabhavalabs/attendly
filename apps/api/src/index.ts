@@ -18,6 +18,7 @@ import { studentsRoutes } from "./routes/students";
 import { lecturersRoutes } from "./routes/lecturers";
 import { classesRoutes } from "./routes/classes";
 import { sessionsRoutes } from "./routes/sessions";
+import { checkinRoutes } from "./routes/checkin";
 
 const DEFAULT_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
 const D1_BOOKMARK_HEADER = "x-d1-bookmark";
@@ -64,6 +65,7 @@ app.route("/api/students", studentsRoutes);
 app.route("/api/lecturers", lecturersRoutes);
 app.route("/api/classes", classesRoutes);
 app.route("/api/sessions", sessionsRoutes);
+app.route("/api/checkin", checkinRoutes);
 
 export default {
   fetch: app.fetch,
