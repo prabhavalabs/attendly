@@ -15,3 +15,4 @@ export * from "./roles";
 export * from "./rbac";
 export * from "./auth";
 export * from "./students";
+export * from "./classes";
