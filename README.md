@@ -1,4 +1,4 @@
-# ClassDesk (attendly)
+# attendly
 
 A web + mobile system for managing **attendance, payments, students, lecturers,
 timetables, and notifications** for a tuition class serving 100+ students.

@@ -67,7 +67,7 @@ export default function LoginPage() {
           <div className="p-7 pl-8">
             <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
             <p className="text-muted-foreground mt-1.5 text-sm">
-              Sign in to the ClassDesk admin portal.
+              Sign in to the attendly admin portal.
             </p>
 
             <Form {...form}>
@@ -123,7 +123,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-muted-foreground mt-6 text-center text-xs">
-          ClassDesk — attendance, billing &amp; notifications.
+          attendly — attendance, billing &amp; notifications.
         </p>
       </div>
     </main>

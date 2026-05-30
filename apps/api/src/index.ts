@@ -1,5 +1,5 @@
 /**
- * ClassDesk API — Cloudflare Worker (Hono).
+ * attendly API — Cloudflare Worker (Hono).
  *
  * Wires CORS, the standard error envelope, the D1 Sessions middleware, and the
  * M0 auth/RBAC routes. Business modules (students, check-in, billing, …) mount

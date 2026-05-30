@@ -16,7 +16,7 @@ function titleFor(pathname: string): string {
     .find((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
   if (match) return match.label;
   if (pathname === "/") return "Dashboard";
-  return "ClassDesk";
+  return "attendly";
 }
 
 export function AppShell() {

@@ -8,7 +8,7 @@ interface UiState {
   setLanguage: (lang: Language) => void;
 }
 
-const LANG_KEY = "classdesk.lang";
+const LANG_KEY = "attendly.lang";
 
 export const useUiStore = create<UiState>((set) => ({
   language: ((): Language => {

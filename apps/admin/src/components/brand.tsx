@@ -1,4 +1,4 @@
-/** ClassDesk brand mark — the ID-card glyph (teal tile, amber + white bands). */
+/** attendly brand mark — the ID-card glyph (teal tile, amber + white bands). */
 import { cn } from "@/lib/utils";
 
 export function BrandGlyph({ size = 36, className }: { size?: number; className?: string }) {
@@ -44,7 +44,7 @@ export function Wordmark({ className, size = 19 }: { className?: string; size?: 
       className={cn("font-display font-extrabold tracking-[-0.03em] text-foreground", className)}
       style={{ fontSize: size }}
     >
-      Class<span className="text-primary">Desk</span>
+      attend<span className="text-primary">ly</span>
     </span>
   );
 }

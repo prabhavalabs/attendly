@@ -9,7 +9,7 @@ import { create } from "zustand";
 import { hasPermission as evalPermission, type Me, type LoginResponse, type AuthTokens } from "@tuition/shared";
 import { api, configureApi, ApiError } from "./api";
 
-const STORAGE_KEY = "classdesk.auth";
+const STORAGE_KEY = "attendly.auth";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 

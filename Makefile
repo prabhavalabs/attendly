@@ -1,5 +1,5 @@
 # ============================================================================
-# ClassDesk (attendly) — developer commands
+# attendly — developer commands
 # Run `make` or `make help` to see everything.
 # ============================================================================
 
@@ -18,7 +18,7 @@ API_URL   ?= http://localhost:8787
 OWNER_EMAIL    ?= owner@vidya.lk
 OWNER_NAME     ?= Class Owner
 OWNER_PASSWORD ?= changeme123
-ORG_NAME       ?= ClassDesk
+ORG_NAME       ?= attendly
 
 .PHONY: help up install env migrate migrate-remote reset-db \
         backend api admin dev seed health \
@@ -28,7 +28,7 @@ ORG_NAME       ?= ClassDesk
 
 help: ## Show this help
 	@echo ""
-	@echo "  ClassDesk — make targets"
+	@echo "  attendly — make targets"
 	@echo ""
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -85,10 +85,15 @@ dev: ## Run backend + admin together (Ctrl-C stops both)
 ## ---- First-boot & checks ----------------------------------------------
 
 seed: ## Seed the first owner via /api/setup (needs backend running; override OWNER_* vars)
-	curl -fsS -X POST $(API_URL)/api/setup \
+	@curl -fsS $(API_URL)/api/health >/dev/null 2>&1 || { \
+		echo "✗ Backend not reachable at $(API_URL)."; \
+		echo "  Start it in another terminal first:  make backend"; \
+		exit 1; }
+	@curl -fsS -X POST $(API_URL)/api/setup \
 		-H 'content-type: application/json' \
 		-d '{"email":"$(OWNER_EMAIL)","name":"$(OWNER_NAME)","password":"$(OWNER_PASSWORD)","org_name":"$(ORG_NAME)"}' \
-		&& echo "" && echo "Owner seeded: $(OWNER_EMAIL) (password: $(OWNER_PASSWORD))"
+		&& echo "" && echo "Owner seeded: $(OWNER_EMAIL) (password: $(OWNER_PASSWORD))" \
+		|| { echo ""; echo "If that was a 403: setup already ran (an owner exists). Use 'make reset-db' to start fresh, or just log in."; exit 1; }
 
 health: ## Ping the backend health endpoint
 	@curl -fsS $(API_URL)/api/health && echo ""

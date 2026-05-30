@@ -2,7 +2,7 @@
   "name": "attendly",
   "version": "0.0.0",
   "private": true,
-  "description": "ClassDesk — tuition class management system (attendance, billing, notifications)",
+  "description": "attendly — tuition class management system (attendance, billing, notifications)",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20.19.4"

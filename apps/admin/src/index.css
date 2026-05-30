@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   ClassDesk theme — maps shadcn semantic tokens to the design
+   attendly theme — maps shadcn semantic tokens to the design
    system (deep teal, warm neutrals, fixed status semantics).
    ============================================================ */
 @theme inline {
@@ -83,7 +83,7 @@
 }
 
 :root {
-  /* ---- ClassDesk raw tokens (from the design system) ---- */
+  /* ---- attendly raw tokens (from the design system) ---- */
   --brand-950: #052824;
   --brand-900: #073c36;
   --brand-800: #0a4f47;
@@ -134,7 +134,7 @@
 
   --radius: 0.625rem;
 
-  /* ---- shadcn semantic tokens mapped to ClassDesk ---- */
+  /* ---- shadcn semantic tokens mapped to attendly ---- */
   --background: var(--cd-bg);
   --foreground: var(--ink-900);
   --card: var(--cd-surface);
