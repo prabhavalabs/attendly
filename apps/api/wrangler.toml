@@ -1,0 +1,24 @@
+name = "tuition-api"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tuition-db"
+database_id = "PASTE_ID"            # wrangler d1 create tuition-db --location apac
+migrations_dir = "../../packages/db/migrations"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "classdesk-assets"
+
+# Cron triggers (see SRS §15.4)
+[triggers]
+crons = ["0 2 1 * *", "0 3 * * *", "*/30 * * * *"]
+# 0 2 1 * *    -> 02:00 on the 1st: generate monthly invoices
+# 0 3 * * *    -> 03:00 daily: mark invoices overdue
+# */30 * * * * -> every 30 min: dispatch scheduled notifications
+
+# Secrets (set with `wrangler secret put`, never commit):
+#   JWT_SECRET, ENCRYPTION_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
