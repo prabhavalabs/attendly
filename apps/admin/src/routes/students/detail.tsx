@@ -12,22 +12,30 @@ import {
   UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Guardian } from "@tuition/shared";
+import { useNavigate } from "@tanstack/react-router";
+import type { Guardian, Invoice } from "@tuition/shared";
 
 import {
   useStudent,
   useIssueCard,
   useRevokeCard,
   useRemoveGuardian,
+  useStudentEnrollments,
   openCardPdf,
 } from "@/hooks/use-students";
+import { useInvoices } from "@/hooks/use-billing";
 import { formatDate } from "@/lib/format";
+import { formatLKR } from "@/lib/money";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { StudentStatusBadge, CardStatusBadge } from "@/components/students/student-status";
 import { StudentDialog } from "@/components/students/student-dialog";
 import { GuardianDialog } from "@/components/students/guardian-dialog";
+import { ClassChip } from "@/components/classes/band";
+import { StatusBadge } from "@/components/common/status-badge";
+import { InvoiceStatusBadge } from "@/components/billing/invoice-status";
+import { PaymentDialog } from "@/components/billing/payment-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,7 +74,10 @@ function ProfileRow({ label, value }: { label: string; value: string | null }) {
 
 export default function StudentDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
+  const navigate = useNavigate();
   const { data: student, isLoading, isError } = useStudent(id);
+  const { data: enrollments } = useStudentEnrollments(id);
+  const { data: invoices } = useInvoices({ student_id: id });
 
   const issueCard = useIssueCard(id);
   const revokeCard = useRevokeCard(id);
@@ -77,6 +88,7 @@ export default function StudentDetailPage() {
   const [guardianEdit, setGuardianEdit] = useState<Guardian | null>(null);
   const [guardianRemove, setGuardianRemove] = useState<Guardian | null>(null);
   const [cardAction, setCardAction] = useState<null | "reissue" | "revoke">(null);
+  const [payInvoice, setPayInvoice] = useState<Invoice | null>(null);
 
   if (isLoading) {
     return (
@@ -183,6 +195,10 @@ export default function StudentDetailPage() {
       <Tabs defaultValue="profile">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="enrollments">Enrollments ({enrollments?.length ?? 0})</TabsTrigger>
+          <Can perm="invoice.read" fallback={<span />}>
+            <TabsTrigger value="fees">Fees</TabsTrigger>
+          </Can>
           <TabsTrigger value="guardians">Guardians ({student.guardians.length})</TabsTrigger>
         </TabsList>
 
@@ -195,6 +211,59 @@ export default function StudentDetailPage() {
             <ProfileRow label="Address" value={student.address} />
             <ProfileRow label="Notes" value={student.notes} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="enrollments" className="mt-5">
+          {(enrollments?.length ?? 0) === 0 ? (
+            <div className="bg-card text-muted-foreground rounded-2xl border py-12 text-center text-sm" style={{ boxShadow: "var(--sh-flat)" }}>
+              Not enrolled in any class. Enroll from a class's page.
+            </div>
+          ) : (
+            <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
+              <ul className="divide-y">
+                {enrollments!.map((e) => (
+                  <li key={e.id}>
+                    <button type="button" className="hover:bg-muted/50 flex w-full items-center gap-3 px-5 py-3 text-left" onClick={() => void navigate({ to: "/classes/$id", params: { id: e.class_id } })}>
+                      <ClassChip band={e.band} code={e.code} />
+                      <span className="flex-1 truncate text-sm font-semibold">{e.class_name}</span>
+                      {e.status === "dropped" ? <StatusBadge tone="neutral">Dropped</StatusBadge> : <StatusBadge tone="ok">Active</StatusBadge>}
+                      <span className="tnum text-muted-foreground text-sm">{formatLKR(e.effective_fee_minor)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="fees" className="mt-5">
+          {(invoices?.length ?? 0) === 0 ? (
+            <div className="bg-card text-muted-foreground rounded-2xl border py-12 text-center text-sm" style={{ boxShadow: "var(--sh-flat)" }}>
+              No invoices yet.
+            </div>
+          ) : (
+            <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
+              <ul className="divide-y">
+                {invoices!.map((inv) => {
+                  const closed = inv.status === "paid" || inv.status === "waived";
+                  return (
+                    <li key={inv.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold">{inv.class_name}</div>
+                        <div className="text-muted-foreground tnum text-xs">{inv.period} · {formatLKR(inv.amount_minor)}{!closed && inv.outstanding_minor > 0 ? ` · ${formatLKR(inv.outstanding_minor)} due` : ""}</div>
+                      </div>
+                      <InvoiceStatusBadge status={inv.status} />
+                      {!closed ? (
+                        <Can perm="payment.record">
+                          <Button variant="outline" size="sm" onClick={() => setPayInvoice(inv)}>Record payment</Button>
+                        </Can>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="guardians" className="mt-5">
@@ -265,6 +334,7 @@ export default function StudentDetailPage() {
       </Tabs>
 
       <StudentDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
+      <PaymentDialog invoice={payInvoice} open={!!payInvoice} onOpenChange={(o) => !o && setPayInvoice(null)} />
       <GuardianDialog studentId={id} open={guardianAdd} onOpenChange={setGuardianAdd} />
       <GuardianDialog
         studentId={id}
