@@ -50,41 +50,42 @@ export async function writeAudit(
  * Returns null if the user does not exist or is soft-deleted.
  */
 export async function loadAuthUser(db: Db, userId: string): Promise<AuthUser | null> {
-  const user = await db
-    .prepare(
-      `SELECT id, email, name, status FROM users WHERE id = ? AND deleted_at IS NULL`,
-    )
-    .bind(userId)
-    .first<{ id: string; email: string; name: string; status: "active" | "suspended" }>();
+  // One D1 round-trip for all three reads (runs on every authenticated request).
+  const [userRes, rolesRes, permsRes] = await db.batch([
+    db.prepare(`SELECT id, email, name, status FROM users WHERE id = ? AND deleted_at IS NULL`).bind(userId),
+    db
+      .prepare(
+        `SELECT r.id, r.key, r.label
+           FROM roles r
+           JOIN user_roles ur ON ur.role_id = r.id
+          WHERE ur.user_id = ?
+          ORDER BY r.label`,
+      )
+      .bind(userId),
+    db
+      .prepare(
+        `SELECT DISTINCT rp.permission_key AS k
+           FROM role_permissions rp
+           JOIN user_roles ur ON ur.role_id = rp.role_id
+          WHERE ur.user_id = ?`,
+      )
+      .bind(userId),
+  ]);
+
+  const user = (userRes?.results ?? [])[0] as
+    | { id: string; email: string; name: string; status: "active" | "suspended" }
+    | undefined;
   if (!user) return null;
 
-  const rolesRes = await db
-    .prepare(
-      `SELECT r.id, r.key, r.label
-         FROM roles r
-         JOIN user_roles ur ON ur.role_id = r.id
-        WHERE ur.user_id = ?
-        ORDER BY r.label`,
-    )
-    .bind(userId)
-    .all<{ id: string; key: string; label: string }>();
-
-  const permsRes = await db
-    .prepare(
-      `SELECT DISTINCT rp.permission_key AS k
-         FROM role_permissions rp
-         JOIN user_roles ur ON ur.role_id = rp.role_id
-        WHERE ur.user_id = ?`,
-    )
-    .bind(userId)
-    .all<{ k: string }>();
+  const roles = (rolesRes?.results ?? []) as { id: string; key: string; label: string }[];
+  const perms = (permsRes?.results ?? []) as { k: string }[];
 
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     status: user.status,
-    roles: rolesRes.results ?? [],
-    permissions: new Set((permsRes.results ?? []).map((r) => r.k)),
+    roles,
+    permissions: new Set(perms.map((r) => r.k)),
   };
 }
