@@ -23,7 +23,9 @@ import (
 	"attendly/api/internal/dashboard"
 	"attendly/api/internal/httpapi"
 	"attendly/api/internal/settings"
+	"attendly/api/internal/storage"
 	"attendly/api/internal/store"
+	"attendly/api/internal/students"
 	"attendly/api/migrations"
 )
 
@@ -52,6 +54,16 @@ func run() error {
 	defer db.Close()
 	if err := store.Migrate(db, migrations.FS); err != nil {
 		return err
+	}
+
+	objects, err := storage.New(cfg)
+	if err != nil {
+		return err
+	}
+	if cfg.R2.Enabled() {
+		slog.Info("object storage", "backend", "r2", "bucket", cfg.R2.Bucket)
+	} else {
+		slog.Info("object storage", "backend", "disk", "dir", cfg.AssetsDir)
 	}
 
 	authSvc := auth.New(db, cfg.JWTSecret, cfg.SetupToken)
@@ -89,6 +101,7 @@ func run() error {
 		r.Use(authSvc.Authenticate)
 		settings.New(db).Mount(r)
 		dashboard.New(db).Mount(r)
+		students.New(db, objects).Mount(r)
 	})
 
 	srv := &http.Server{
