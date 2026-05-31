@@ -1,0 +1,3 @@
+# SPA fallback for Cloudflare Pages — TanStack Router uses browser history, so
+# every deep link must serve the app shell and let the client route.
+/*    /index.html   200
