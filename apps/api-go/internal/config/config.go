@@ -12,13 +12,28 @@ import (
 type Config struct {
 	Addr          string   // listen address, e.g. ":8787"
 	DBPath        string   // path to the SQLite database file
-	AssetsDir     string   // directory for generated PDFs / uploads (R2 replacement)
+	AssetsDir     string   // local fallback dir for objects when R2 is unset
 	JWTSecret     string   // HS256 signing secret (must match existing tokens)
 	EncryptionKey string   // AES-GCM key material for OAuth tokens at rest
 	GoogleID      string   // Google OAuth client id (optional)
 	GoogleSecret  string   // Google OAuth client secret (optional)
 	SetupToken    string   // optional: allows re-running /api/setup
 	CORSOrigins   []string // allowed browser origins
+	R2            R2Config // object storage (uploads, PDFs)
+}
+
+// R2Config configures Cloudflare R2 via its S3-compatible API. When AccountID
+// or the keys are empty, the server falls back to local-disk storage.
+type R2Config struct {
+	AccountID string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+}
+
+// Enabled reports whether R2 is fully configured.
+func (r R2Config) Enabled() bool {
+	return r.AccountID != "" && r.AccessKey != "" && r.SecretKey != "" && r.Bucket != ""
 }
 
 func env(key, def string) string {
@@ -52,5 +67,11 @@ func Load() Config {
 		GoogleSecret:  os.Getenv("GOOGLE_CLIENT_SECRET"),
 		SetupToken:    os.Getenv("SETUP_TOKEN"),
 		CORSOrigins:   origins,
+		R2: R2Config{
+			AccountID: os.Getenv("R2_ACCOUNT_ID"),
+			AccessKey: os.Getenv("R2_ACCESS_KEY_ID"),
+			SecretKey: os.Getenv("R2_SECRET_ACCESS_KEY"),
+			Bucket:    env("R2_BUCKET", "attendly-assets"),
+		},
 	}
 }
