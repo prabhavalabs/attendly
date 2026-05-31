@@ -206,6 +206,11 @@ func ISOIn(seconds int) string {
 	return time.Now().UTC().Add(time.Duration(seconds) * time.Second).Format(isoLayout)
 }
 
+// ISOAt formats t as ISO-8601 UTC with millisecond precision.
+func ISOAt(t time.Time) string {
+	return t.UTC().Format(isoLayout)
+}
+
 func hmacSHA256(data []byte, secret string) []byte {
 	m := hmac.New(sha256.New, []byte(secret))
 	m.Write(data)
