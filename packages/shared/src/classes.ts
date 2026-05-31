@@ -126,6 +126,15 @@ export const createEnrollmentSchema = z
   .strict();
 export type CreateEnrollmentInput = z.infer<typeof createEnrollmentSchema>;
 
+export const updateEnrollmentSchema = z
+  .object({
+    /** null clears the override (falls back to the class fee). */
+    fee_override_minor: z.number().int().nonnegative().nullable().optional(),
+    status: enrollmentStatusSchema.optional(),
+  })
+  .strict();
+export type UpdateEnrollmentInput = z.infer<typeof updateEnrollmentSchema>;
+
 /* ------------------------------- Timetable ------------------------------- */
 
 export const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;

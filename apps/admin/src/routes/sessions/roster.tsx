@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { SessionStatus, RosterEntry } from "@tuition/shared";
 
 import { useRoster, useUpdateSession, useMarkAttendance, useClearAttendance } from "@/hooks/use-sessions";
+import { useLecturers } from "@/hooks/use-lecturers";
 import { formatDate } from "@/lib/format";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -14,7 +15,11 @@ import { AttendanceMarker } from "@/components/sessions/attendance-marker";
 import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const NONE = "__none__";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +39,8 @@ export default function SessionRosterPage() {
   const { id } = useParams({ strict: false }) as { id: string };
   const { data, isLoading, isError } = useRoster(id);
   const updateSession = useUpdateSession(id);
+  const { data: lecturers } = useLecturers();
+  const subItems = [{ value: NONE, label: "No substitute" }, ...(lecturers ?? []).map((l) => ({ value: l.id, label: l.name }))];
   const markAttendance = useMarkAttendance(id);
   const clearAttendance = useClearAttendance(id);
   const [topic, setTopic] = useState<string | null>(null);
@@ -113,13 +120,32 @@ export default function SessionRosterPage() {
             perm="session.manage"
             fallback={s.topic ? <p className="text-sm"><span className="text-muted-foreground">Topic: </span>{s.topic}</p> : null}
           >
-            <Input
-              value={topicValue}
-              onChange={(e) => setTopic(e.target.value)}
-              onBlur={() => void saveTopic()}
-              placeholder="Lesson topic (optional)"
-              className="max-w-md"
-            />
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="grid flex-1 gap-1.5">
+                <Label className="text-xs">Topic</Label>
+                <Input
+                  value={topicValue}
+                  onChange={(e) => setTopic(e.target.value)}
+                  onBlur={() => void saveTopic()}
+                  placeholder="Lesson topic (optional)"
+                  className="max-w-md"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Substitute lecturer</Label>
+                <Select
+                  value={s.substitute_lecturer_id ?? NONE}
+                  onValueChange={(v) => {
+                    const next = v && v !== NONE ? v : null;
+                    void updateSession.mutateAsync({ substitute_lecturer_id: next }).then(() => toast.success("Substitute updated"));
+                  }}
+                  items={subItems}
+                >
+                  <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                  <SelectContent>{subItems.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
           </Can>
         </div>
       </div>

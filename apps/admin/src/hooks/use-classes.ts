@@ -5,6 +5,7 @@ import type {
   UpdateClassInput,
   Enrollment,
   CreateEnrollmentInput,
+  UpdateEnrollmentInput,
   TimetableSlot,
   CreateTimetableSlotInput,
 } from "@tuition/shared";
@@ -73,6 +74,18 @@ export function useEnroll(classId: string) {
       qc.invalidateQueries({ queryKey: ["enrollments", classId] });
       qc.invalidateQueries({ queryKey: ["class", classId] });
       qc.invalidateQueries({ queryKey: ["classes"] });
+    },
+  });
+}
+
+export function useUpdateEnrollment(classId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eid, input }: { eid: string; input: UpdateEnrollmentInput }) =>
+      api.patch<{ enrollments: Enrollment[] }>(`/api/classes/${classId}/enrollments/${eid}`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["enrollments", classId] });
+      qc.invalidateQueries({ queryKey: ["class", classId] });
     },
   });
 }
