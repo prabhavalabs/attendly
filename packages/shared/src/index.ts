@@ -19,3 +19,5 @@ export * from "./classes";
 export * from "./checkin";
 export * from "./billing";
 export * from "./reports";
+export * from "./settings";
+export * from "./notifications";

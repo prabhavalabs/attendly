@@ -22,7 +22,10 @@ import { checkinRoutes } from "./routes/checkin";
 import { invoicesRoutes, paymentsRoutes } from "./routes/billing";
 import { reportsRoutes } from "./routes/reports";
 import { dashboardRoutes } from "./routes/dashboard";
+import { settingsRoutes } from "./routes/settings";
+import { notificationsRoutes } from "./routes/notifications";
 import { generateInvoices, markOverdue } from "./lib/billing";
+import { nowIso } from "./lib/id";
 
 const DEFAULT_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
 const D1_BOOKMARK_HEADER = "x-d1-bookmark";
@@ -74,6 +77,8 @@ app.route("/api/invoices", invoicesRoutes);
 app.route("/api/payments", paymentsRoutes);
 app.route("/api/reports", reportsRoutes);
 app.route("/api/dashboard", dashboardRoutes);
+app.route("/api/settings", settingsRoutes);
+app.route("/api/notifications", notificationsRoutes);
 
 export default {
   fetch: app.fetch,
@@ -87,7 +92,12 @@ export default {
       await generateInvoices(db, { period, actorId: null });
     } else if (event.cron === "0 3 * * *") {
       await markOverdue(db);
+    } else if (event.cron === "*/30 * * * *") {
+      // Dispatch due scheduled notifications (delivery providers land with M5).
+      await db
+        .prepare(`UPDATE notifications SET status = 'sent', sent_at = ?1, updated_at = ?1 WHERE status = 'queued' AND scheduled_at IS NOT NULL AND scheduled_at <= ?1`)
+        .bind(nowIso())
+        .run();
     }
-    // "*/30 * * * *" → notification dispatch (M5)
   },
 };
