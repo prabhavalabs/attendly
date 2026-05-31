@@ -6,6 +6,7 @@ import { loginSchema, type LoginInput } from "@tuition/shared";
 
 import { ApiError } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
+import { useT } from "@/lib/i18n";
 import { BrandGlyph, Wordmark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
+  const t = useT();
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -65,10 +67,8 @@ export default function LoginPage() {
             aria-hidden
           />
           <div className="p-7 pl-8">
-            <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground mt-1.5 text-sm">
-              Sign in to the attendly admin portal.
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight">{t("login.welcome")}</h1>
+            <p className="text-muted-foreground mt-1.5 text-sm">{t("login.subtitle")}</p>
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 grid gap-4" noValidate>
@@ -77,7 +77,7 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t("login.email")}</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
@@ -96,7 +96,7 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>{t("login.password")}</FormLabel>
                       <FormControl>
                         <Input
                           type="password"
@@ -115,16 +115,14 @@ export default function LoginPage() {
                   className="mt-1 w-full"
                   disabled={form.formState.isSubmitting}
                 >
-                  {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
+                  {form.formState.isSubmitting ? t("login.signingIn") : t("login.signIn")}
                 </Button>
               </form>
             </Form>
           </div>
         </div>
 
-        <p className="text-muted-foreground mt-6 text-center text-xs">
-          attendly — attendance, billing &amp; notifications.
-        </p>
+        <p className="text-muted-foreground mt-6 text-center text-xs">{t("login.footer")}</p>
       </div>
     </main>
   );

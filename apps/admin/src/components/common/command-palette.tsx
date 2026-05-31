@@ -5,6 +5,7 @@ import type { StudentSummary } from "@tuition/shared";
 
 import { api } from "@/lib/api";
 import { checkPermission } from "@/lib/auth-store";
+import { useT } from "@/lib/i18n";
 import { NAV_GROUPS } from "@/components/layout/nav-config";
 import {
   Command,
@@ -27,6 +28,7 @@ function useDebounced<T>(value: T, ms = 200): T {
 
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
+  const t = useT();
   const [q, setQ] = useState("");
   const dq = useDebounced(q);
 
@@ -40,7 +42,11 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   });
 
   const navItems = NAV_GROUPS.flatMap((g) => g.items).filter((i) => !i.perm || checkPermission(i.perm));
-  const filteredNav = q.trim() === "" ? navItems : navItems.filter((i) => i.label.toLowerCase().includes(q.toLowerCase()));
+  const ql = q.trim().toLowerCase();
+  const filteredNav =
+    ql === ""
+      ? navItems
+      : navItems.filter((i) => i.label.toLowerCase().includes(ql) || t(i.key).toLowerCase().includes(ql));
 
   function close() {
     onOpenChange(false);
@@ -82,7 +88,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   }}
                 >
                   <i.icon className="size-4" />
-                  {i.label}
+                  {t(i.key)}
                 </CommandItem>
               ))}
             </CommandGroup>
