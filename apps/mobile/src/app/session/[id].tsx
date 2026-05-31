@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
@@ -6,12 +6,13 @@ import { useLocalSearchParams } from "expo-router";
 import { useRoster } from "@/queries/sessions";
 import { useCheckin } from "@/queries/checkin";
 import { QrScanner } from "@/components/qr-scanner";
-import { Field, Pill } from "@/components/ui";
+import { Button, Card, Field, Pill } from "@/components/ui";
+import { getNfcCapability, readCardToken, cancelNfc, type NfcCapability } from "@/lib/nfc";
 import type { OutboxRow, RosterRow } from "@/lib/db";
 import type { AttendanceStatus } from "@tuition/shared";
 import { colors, radius, space } from "@/theme";
 
-type Mode = "scan" | "manual";
+type Mode = "scan" | "manual" | "nfc";
 
 function logTone(row: OutboxRow): { tone: "muted" | "success" | "warning" | "danger"; label: string } {
   if (row.error) return { tone: "danger", label: row.error.replace(/_/g, " ") };
@@ -34,6 +35,32 @@ export default function CheckinScreen() {
   const [mode, setMode] = useState<Mode>("scan");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<AttendanceStatus>("present");
+  const [nfc, setNfc] = useState<NfcCapability>({ supported: false });
+  const [nfcBusy, setNfcBusy] = useState(false);
+
+  useEffect(() => {
+    void getNfcCapability().then(setNfc);
+    return () => {
+      void cancelNfc();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "nfc") void cancelNfc();
+  }, [mode]);
+
+  const readNfc = useCallback(async () => {
+    setNfcBusy(true);
+    try {
+      const token = await readCardToken();
+      if (token) await checkIn({ method: "nfc", cardToken: token, status });
+    } finally {
+      setNfcBusy(false);
+    }
+  }, [checkIn, status]);
+
+  const modes: Mode[] = nfc.supported ? ["scan", "manual", "nfc"] : ["scan", "manual"];
+  const modeLabel: Record<Mode, string> = { scan: "Scan QR", manual: "Manual", nfc: "NFC" };
 
   const filtered = useMemo(() => {
     const rows = roster.data?.roster ?? [];
@@ -70,9 +97,9 @@ export default function CheckinScreen() {
       ) : null}
 
       <View style={styles.toggle}>
-        {(["scan", "manual"] as Mode[]).map((m) => (
+        {modes.map((m) => (
           <Pressable key={m} onPress={() => setMode(m)} style={[styles.toggleBtn, mode === m && styles.toggleActive]}>
-            <Text style={[styles.toggleText, mode === m && styles.toggleTextActive]}>{m === "scan" ? "Scan QR" : "Manual"}</Text>
+            <Text style={[styles.toggleText, mode === m && styles.toggleTextActive]}>{modeLabel[m]}</Text>
           </Pressable>
         ))}
       </View>
@@ -87,6 +114,15 @@ export default function CheckinScreen() {
 
       {mode === "scan" ? (
         <QrScanner onScan={(token) => checkIn({ method: "qr", cardToken: token, status })} />
+      ) : mode === "nfc" ? (
+        <Card style={styles.nfcPanel}>
+          <Text style={styles.nfcTitle}>Tap a student card</Text>
+          <Text style={styles.nfcHint}>Hold the card to the device, then read it.</Text>
+          <View style={{ height: space.md }} />
+          <View style={{ alignSelf: "stretch" }}>
+            <Button label={nfcBusy ? "Hold card to reader…" : "Read card"} onPress={readNfc} loading={nfcBusy} />
+          </View>
+        </Card>
       ) : (
         <Field placeholder="Search name or reg no…" value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} />
       )}
@@ -182,6 +218,9 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 13, fontWeight: "600", color: colors.muted, textTransform: "capitalize" },
   chipTextActive: { color: colors.primaryText },
+  nfcPanel: { alignItems: "center", paddingVertical: space.xl },
+  nfcTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
+  nfcHint: { fontSize: 14, color: colors.muted, marginTop: space.xs, textAlign: "center" },
   banner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space.md, borderRadius: radius.md },
   bannerName: { fontSize: 16, fontWeight: "700", color: colors.text, flex: 1 },
   sectionLabel: { fontSize: 13, fontWeight: "700", color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5, marginTop: space.sm },
