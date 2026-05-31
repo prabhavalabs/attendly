@@ -11,6 +11,7 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { BAND_VAR, ClassChip } from "@/components/classes/band";
 import { ClassDialog } from "@/components/classes/class-dialog";
+import { EnrollmentFeeDialog } from "@/components/classes/enrollment-fee-dialog";
 import { EnrollDialog } from "@/components/classes/enroll-dialog";
 import { TimetableEditor } from "@/components/classes/timetable-editor";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export default function ClassDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [removing, setRemoving] = useState<Enrollment | null>(null);
+  const [editFee, setEditFee] = useState<Enrollment | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (isLoading) {
@@ -139,8 +141,14 @@ export default function ClassDetailPage() {
                       <div className="truncate text-sm font-semibold">{e.student.full_name}</div>
                       <div className="text-muted-foreground tnum text-xs">{e.student.reg_no}</div>
                     </button>
-                    <span className="tnum text-muted-foreground text-sm">{formatLKR(e.effective_fee_minor)}</span>
+                    <span className="tnum text-muted-foreground text-sm">
+                      {formatLKR(e.effective_fee_minor)}
+                      {e.fee_override_minor != null ? <span className="text-warn-ink ml-1" title="Custom fee">*</span> : null}
+                    </span>
                     <Can perm="class.manage">
+                      <Button variant="ghost" size="icon-sm" aria-label="Edit fee" onClick={() => setEditFee(e)}>
+                        <Pencil className="size-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon-sm" aria-label="Unenroll" onClick={() => setRemoving(e)}>
                         <Trash2 className="size-4" />
                       </Button>
@@ -158,6 +166,7 @@ export default function ClassDetailPage() {
       </Tabs>
 
       <ClassDialog open={editOpen} onOpenChange={setEditOpen} cls={cls} />
+      <EnrollmentFeeDialog classId={id} enrollment={editFee} open={!!editFee} onOpenChange={(o) => !o && setEditFee(null)} />
       <EnrollDialog classId={id} enrolledIds={enrolledIds} open={enrollOpen} onOpenChange={setEnrollOpen} />
       <ConfirmDialog
         open={!!removing}

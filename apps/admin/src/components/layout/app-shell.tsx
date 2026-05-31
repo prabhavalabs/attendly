@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { Bell, Search } from "lucide-react";
 
@@ -5,11 +6,11 @@ import { NAV_GROUPS } from "./nav-config";
 import { AppSidebar } from "./app-sidebar";
 import { UserMenu } from "./user-menu";
 import { LangToggle } from "./lang-toggle";
+import { CommandPalette } from "@/components/common/command-palette";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
@@ -25,6 +26,18 @@ function titleFor(pathname: string): string {
 export function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const title = titleFor(pathname);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <SidebarProvider>
@@ -36,18 +49,15 @@ export function AppShell() {
           <h1 className="text-xl font-bold tracking-tight">{title}</h1>
 
           <div className="ml-auto flex items-center gap-2.5">
-            <div className="relative hidden lg:block">
-              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                type="search"
-                placeholder="Search students, classes…"
-                aria-label="Search"
-                className="h-9 w-64 pl-9 pr-12"
-              />
-              <kbd className="bg-card text-muted-foreground absolute top-1/2 right-2.5 -translate-y-1/2 rounded border px-1.5 text-[11px] font-semibold">
-                ⌘K
-              </kbd>
-            </div>
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="bg-background text-muted-foreground hover:text-foreground hidden h-9 w-64 items-center gap-2 rounded-[var(--radius-sm)] border px-3 text-sm lg:flex"
+            >
+              <Search className="size-4" />
+              <span className="flex-1 text-left">Search students, pages…</span>
+              <kbd className="bg-card rounded border px-1.5 text-[11px] font-semibold">⌘K</kbd>
+            </button>
             <LangToggle />
             <Button
               variant="outline"
@@ -70,6 +80,7 @@ export function AppShell() {
           <Outlet />
         </ScrollArea>
       </SidebarInset>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </SidebarProvider>
   );
 }

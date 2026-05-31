@@ -5,6 +5,7 @@ import {
   createClassSchema,
   updateClassSchema,
   createEnrollmentSchema,
+  updateEnrollmentSchema,
   createTimetableSlotSchema,
 } from "@tuition/shared";
 import type { AppContext, Db } from "../types";
@@ -177,6 +178,28 @@ classesRoutes.post("/:id/enrollments", requirePermission("class.manage"), async 
   }
   await writeAudit(db, { actorId: c.get("user").id, action: "enrollment.add", entityType: "class", entityId: classId, after: { student_id: body.student_id } });
   return c.json({ enrollments: await enrollmentsFor(db, classId) }, 201);
+});
+
+classesRoutes.patch("/:id/enrollments/:eid", requirePermission("class.manage"), async (c) => {
+  const body = await parseBody(c, updateEnrollmentSchema);
+  const db = c.get("db");
+  const classId = c.req.param("id");
+  const eid = c.req.param("eid");
+  const existing = await db
+    .prepare(`SELECT id FROM enrollments WHERE id = ? AND class_id = ?`)
+    .bind(eid, classId)
+    .first<{ id: string }>();
+  if (!existing) throw new HTTPException(404, { message: "not_found" });
+
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  if ("fee_override_minor" in body) { sets.push("fee_override_minor = ?"); binds.push(body.fee_override_minor ?? null); }
+  if (body.status !== undefined) { sets.push("status = ?"); binds.push(body.status); }
+  if (sets.length > 0) {
+    await db.prepare(`UPDATE enrollments SET ${sets.join(", ")} WHERE id = ?`).bind(...binds, eid).run();
+    await writeAudit(db, { actorId: c.get("user").id, action: "enrollment.update", entityType: "class", entityId: classId, after: body });
+  }
+  return c.json({ enrollments: await enrollmentsFor(db, classId) });
 });
 
 classesRoutes.delete("/:id/enrollments/:eid", requirePermission("class.manage"), async (c) => {
