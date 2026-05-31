@@ -24,6 +24,7 @@ import { reportsRoutes } from "./routes/reports";
 import { dashboardRoutes } from "./routes/dashboard";
 import { settingsRoutes } from "./routes/settings";
 import { notificationsRoutes } from "./routes/notifications";
+import { integrationsRoutes } from "./routes/integrations";
 import { generateInvoices, markOverdue } from "./lib/billing";
 import { nowIso } from "./lib/id";
 
@@ -79,6 +80,7 @@ app.route("/api/reports", reportsRoutes);
 app.route("/api/dashboard", dashboardRoutes);
 app.route("/api/settings", settingsRoutes);
 app.route("/api/notifications", notificationsRoutes);
+app.route("/api/integrations", integrationsRoutes);
 
 export default {
   fetch: app.fetch,
