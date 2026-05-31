@@ -181,6 +181,56 @@ studentsRoutes.get("/:id/enrollments", requirePermission("student.read"), async 
   return c.json({ enrollments: rows.results ?? [] });
 });
 
+/* --------------------------------- Photo --------------------------------- */
+
+const PHOTO_TYPES = /^image\/(jpeg|png|webp)$/;
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const photoKey = (id: string) => `students/${id}/photo`;
+
+/** POST /api/students/:id/photo — upload (raw image body). Stores in R2. */
+studentsRoutes.post("/:id/photo", requirePermission("student.update"), async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  if (!(await getStudentRow(db, id))) throw new HTTPException(404, { message: "not_found" });
+
+  const contentType = c.req.header("content-type") ?? "";
+  if (!PHOTO_TYPES.test(contentType)) throw new HTTPException(415, { message: "unsupported_media_type" });
+  const body = await c.req.arrayBuffer();
+  if (body.byteLength === 0) throw new HTTPException(400, { message: "empty_body" });
+  if (body.byteLength > MAX_PHOTO_BYTES) throw new HTTPException(413, { message: "file_too_large" });
+
+  await c.env.ASSETS.put(photoKey(id), body, { httpMetadata: { contentType } });
+  const photoUrl = `/api/students/${id}/photo`;
+  await db.prepare(`UPDATE students SET photo_url = ?, updated_at = ? WHERE id = ?`).bind(photoUrl, nowIso(), id).run();
+  await writeAudit(db, { actorId: c.get("user").id, action: "student.photo.upload", entityType: "student", entityId: id });
+
+  const row = await getStudentRow(db, id);
+  return c.json({ ...row, guardians: await guardiansForStudent(db, id) });
+});
+
+/** GET /api/students/:id/photo — stream the stored photo from R2. */
+studentsRoutes.get("/:id/photo", requirePermission("student.read"), async (c) => {
+  const obj = await c.env.ASSETS.get(photoKey(c.req.param("id")));
+  if (!obj) throw new HTTPException(404, { message: "not_found" });
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": obj.httpMetadata?.contentType ?? "image/jpeg",
+      "Cache-Control": "private, max-age=300",
+    },
+  });
+});
+
+/** DELETE /api/students/:id/photo — remove the photo. */
+studentsRoutes.delete("/:id/photo", requirePermission("student.update"), async (c) => {
+  const db = c.get("db");
+  const id = c.req.param("id");
+  await c.env.ASSETS.delete(photoKey(id));
+  await db.prepare(`UPDATE students SET photo_url = NULL, updated_at = ? WHERE id = ?`).bind(nowIso(), id).run();
+  await writeAudit(db, { actorId: c.get("user").id, action: "student.photo.remove", entityType: "student", entityId: id });
+  const row = await getStudentRow(db, id);
+  return c.json({ ...row, guardians: await guardiansForStudent(db, id) });
+});
+
 /** POST /api/students — create (auto reg_no + card_token), with optional guardians. */
 studentsRoutes.post("/", requirePermission("student.create"), async (c) => {
   const body = await parseBody(c, createStudentSchema);

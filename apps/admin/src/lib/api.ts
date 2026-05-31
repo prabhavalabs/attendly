@@ -108,7 +108,7 @@ export const api = {
     request<T>(path, { ...opts, method: "PATCH", body }),
   delete: <T>(path: string, opts?: Omit<RequestOptions, "method" | "body">) =>
     request<T>(path, { ...opts, method: "DELETE" }),
-  /** Authenticated GET returning a Blob (e.g. a generated PDF). */
+  /** Authenticated GET returning a Blob (e.g. a generated PDF or photo). */
   blob: async (path: string): Promise<Blob> => {
     const headers: Record<string, string> = {};
     const token = hooks.getAccessToken();
@@ -116,5 +116,23 @@ export const api = {
     const res = await fetch(`${API_BASE_URL}${path}`, { headers });
     if (!res.ok) throw new ApiError(res.status, "request_failed");
     return res.blob();
+  },
+  /** Authenticated raw upload (POST a File with its content-type as the body). */
+  upload: async <T>(path: string, file: File): Promise<T> => {
+    const headers: Record<string, string> = { "Content-Type": file.type };
+    const token = hooks.getAccessToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE_URL}${path}`, { method: "POST", headers, body: file });
+    let data: unknown = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    if (!res.ok) {
+      const err = data as { error?: string } | null;
+      throw new ApiError(res.status, err?.error ?? "request_failed");
+    }
+    return data as T;
   },
 };

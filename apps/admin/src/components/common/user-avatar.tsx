@@ -2,6 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { AuthImage } from "@/components/common/auth-image";
 
 const BANDS = [
   "var(--band-teal)",
@@ -32,9 +33,11 @@ export function UserAvatar({
   className?: string;
 }) {
   const color = tint(seed ?? name);
+  const isExternal = !!photoUrl && /^https?:\/\//.test(photoUrl);
+  const isApiPhoto = !!photoUrl && !isExternal;
   return (
-    <Avatar className={cn(className)} style={{ width: size, height: size }}>
-      {photoUrl ? <AvatarImage src={photoUrl} alt={name} /> : null}
+    <Avatar className={cn("relative", className)} style={{ width: size, height: size }}>
+      {isExternal ? <AvatarImage src={photoUrl!} alt={name} /> : null}
       <AvatarFallback
         className="font-display font-semibold"
         style={{
@@ -45,6 +48,9 @@ export function UserAvatar({
       >
         {initials(name)}
       </AvatarFallback>
+      {isApiPhoto ? (
+        <AuthImage path={photoUrl!} alt={name} className="absolute inset-0 size-full rounded-full object-cover" />
+      ) : null}
     </Avatar>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -10,6 +10,8 @@ import {
   Phone,
   Mail,
   UserPlus,
+  Camera,
+  ImageOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
@@ -21,6 +23,8 @@ import {
   useRevokeCard,
   useRemoveGuardian,
   useStudentEnrollments,
+  useUploadPhoto,
+  useRemovePhoto,
   openCardPdf,
 } from "@/hooks/use-students";
 import { useInvoices } from "@/hooks/use-billing";
@@ -82,6 +86,25 @@ export default function StudentDetailPage() {
   const issueCard = useIssueCard(id);
   const revokeCard = useRevokeCard(id);
   const removeGuardian = useRemoveGuardian(id);
+  const uploadPhoto = useUploadPhoto(id);
+  const removePhoto = useRemovePhoto(id);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function onPhotoPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5 MB.");
+      return;
+    }
+    try {
+      await uploadPhoto.mutateAsync(file);
+      toast.success("Photo updated");
+    } catch {
+      toast.error("Could not upload the photo (use JPG, PNG or WebP).");
+    }
+  }
 
   const [editOpen, setEditOpen] = useState(false);
   const [guardianAdd, setGuardianAdd] = useState(false);
@@ -133,7 +156,21 @@ export default function StudentDetailPage() {
         <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: "var(--brand-600)" }} aria-hidden />
         <div className="flex flex-wrap items-start justify-between gap-4 pl-2">
           <div className="flex items-center gap-4">
-            <UserAvatar name={student.full_name} seed={student.id} photoUrl={student.photo_url} size={68} />
+            <div className="relative">
+              <UserAvatar name={student.full_name} seed={student.id} photoUrl={student.photo_url} size={68} />
+              <Can perm="student.update">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploadPhoto.isPending}
+                  className="bg-card text-muted-foreground hover:text-foreground absolute -right-1 -bottom-1 grid size-7 place-items-center rounded-full border shadow-[var(--sh-flat)]"
+                  aria-label="Change photo"
+                >
+                  <Camera className="size-3.5" />
+                </button>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onPhotoPicked} />
+              </Can>
+            </div>
             <div>
               <h2 className="font-display text-2xl font-bold tracking-tight">{student.full_name}</h2>
               <div className="text-muted-foreground tnum mt-0.5 text-sm">
@@ -177,6 +214,20 @@ export default function StudentDetailPage() {
                       Revoke card
                     </DropdownMenuItem>
                   </Can>
+                  {student.photo_url ? (
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        try {
+                          await removePhoto.mutateAsync();
+                          toast.success("Photo removed");
+                        } catch {
+                          toast.error("Could not remove the photo.");
+                        }
+                      }}
+                    >
+                      <ImageOff className="size-4" /> Remove photo
+                    </DropdownMenuItem>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             </Can>
