@@ -21,3 +21,4 @@ export * from "./billing";
 export * from "./reports";
 export * from "./settings";
 export * from "./notifications";
+export * from "./integrations";
