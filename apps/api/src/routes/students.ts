@@ -164,6 +164,23 @@ studentsRoutes.get("/:id", requirePermission("student.read"), async (c) => {
   return c.json({ ...row, guardians: await guardiansForStudent(db, row.id) });
 });
 
+/** GET /api/students/:id/enrollments — the classes this student is enrolled in. */
+studentsRoutes.get("/:id/enrollments", requirePermission("student.read"), async (c) => {
+  const db = c.get("db");
+  const rows = await db
+    .prepare(
+      `SELECT e.id, e.class_id, c.name AS class_name, c.code, c.band, e.status,
+              COALESCE(e.fee_override_minor, c.fee_minor) AS effective_fee_minor
+         FROM enrollments e
+         JOIN classes c ON c.id = e.class_id AND c.deleted_at IS NULL
+        WHERE e.student_id = ?
+        ORDER BY e.status, c.name`,
+    )
+    .bind(c.req.param("id"))
+    .all();
+  return c.json({ enrollments: rows.results ?? [] });
+});
+
 /** POST /api/students — create (auto reg_no + card_token), with optional guardians. */
 studentsRoutes.post("/", requirePermission("student.create"), async (c) => {
   const body = await parseBody(c, createStudentSchema);

@@ -7,8 +7,17 @@ import type {
   UpdateStudentInput,
   CreateGuardianInput,
   UpdateGuardianInput,
+  StudentEnrollment,
 } from "@tuition/shared";
 import { api } from "@/lib/api";
+
+export function useStudentEnrollments(id: string | undefined) {
+  return useQuery({
+    queryKey: ["student-enrollments", id],
+    queryFn: () => api.get<{ enrollments: StudentEnrollment[] }>(`/api/students/${id}/enrollments`).then((r) => r.enrollments),
+    enabled: !!id,
+  });
+}
 
 export interface StudentListParams {
   q?: string;
