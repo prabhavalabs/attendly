@@ -99,6 +99,29 @@ export function useRevokeCard(id: string) {
   });
 }
 
+export function useUploadPhoto(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => api.upload<StudentDetail>(`/api/students/${id}/photo`, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["student", id] });
+      qc.invalidateQueries({ queryKey: ["students"] });
+      qc.invalidateQueries({ queryKey: ["photo", `/api/students/${id}/photo`] });
+    },
+  });
+}
+
+export function useRemovePhoto(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete<StudentDetail>(`/api/students/${id}/photo`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["student", id] });
+      qc.invalidateQueries({ queryKey: ["students"] });
+    },
+  });
+}
+
 /** Fetch the card PDF (authenticated) and open it in a new tab. */
 export async function openCardPdf(id: string): Promise<void> {
   const blob = await api.blob(`/api/students/${id}/card.pdf`);
