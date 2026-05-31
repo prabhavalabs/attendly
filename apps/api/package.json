@@ -12,11 +12,14 @@
     "@tuition/shared": "workspace:*",
     "hono": "^4.6.0",
     "nanoid": "^5.0.0",
+    "pdf-lib": "^1.17.1",
+    "qrcode-generator": "^1.4.4",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/qrcode-generator": "^1.0.6",
     "typescript": "^5.7.0",
-    "wrangler": "^3.90.0"
+    "wrangler": "^4.95.0"
   }
 }

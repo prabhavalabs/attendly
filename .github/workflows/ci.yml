@@ -1,0 +1,55 @@
+name: CI
+
+# Validate every PR (and pushes to the long-lived branches) before it can be
+# merged: typecheck the whole monorepo, build the admin portal, bundle the
+# Worker (dry-run), apply the D1 migrations to a throwaway local database, and
+# bundle the mobile web/PWA target.
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck · build · migrations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4 # version is read from package.json "packageManager"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (all workspaces)
+        run: pnpm typecheck
+
+      - name: Build admin portal
+        run: pnpm --filter @tuition/admin build
+
+      - name: Bundle Worker (dry-run)
+        working-directory: apps/api
+        run: pnpm exec wrangler deploy --dry-run --outdir .wrangler/ci-build
+
+      - name: Test D1 migrations (apply to a local database)
+        working-directory: apps/api
+        run: pnpm exec wrangler d1 migrations apply tuition-db --local
+
+      - name: Bundle mobile web/PWA
+        working-directory: apps/mobile
+        run: pnpm exec expo export --platform web

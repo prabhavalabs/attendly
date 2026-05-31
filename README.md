@@ -1,4 +1,4 @@
-# ClassDesk (attendly)
+# attendly
 
 A web + mobile system for managing **attendance, payments, students, lecturers,
 timetables, and notifications** for a tuition class serving 100+ students.
@@ -24,10 +24,16 @@ Build order follows the SRS roadmap (M0 Foundation → M7 Reports).
 ## Getting started
 
 ```bash
-pnpm install
-pnpm --filter @tuition/db migrate:local
-pnpm --filter @tuition/api dev        # wrangler dev on :8787
+make up         # install deps, create apps/api/.dev.vars, migrate the local DB
+
+make backend    # terminal 1 — API worker on :8787
+make admin      # terminal 2 — admin portal on :5173
+make seed       # once — create the owner account (POST /api/setup)
+# then open http://localhost:5173
 ```
+
+Run `make help` to see every target (backend, admin, dev, migrate, reset-db,
+seed, build, typecheck, lint, clean, …).
 
 Full requirements & build guide: see the SRS. Conventions for contributors and AI
 agents live in [CLAUDE.md](./CLAUDE.md).
