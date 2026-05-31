@@ -7,6 +7,7 @@ import { AppSidebar } from "./app-sidebar";
 import { UserMenu } from "./user-menu";
 import { LangToggle } from "./lang-toggle";
 import { CommandPalette } from "@/components/common/command-palette";
+import { useT } from "@/lib/i18n";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,18 +15,17 @@ import { Button } from "@/components/ui/button";
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
-function titleFor(pathname: string): string {
-  const match = ALL_ITEMS.filter((i) => i.to !== "/")
+function matchNav(pathname: string) {
+  return ALL_ITEMS.filter((i) => i.to !== "/")
     .sort((a, b) => b.to.length - a.to.length)
     .find((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
-  if (match) return match.label;
-  if (pathname === "/") return "Dashboard";
-  return "attendly";
 }
 
 export function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const title = titleFor(pathname);
+  const t = useT();
+  const match = matchNav(pathname);
+  const title = match ? t(match.key) : pathname === "/" ? t("nav.dashboard") : "attendly";
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export function AppShell() {
               className="bg-background text-muted-foreground hover:text-foreground hidden h-9 w-64 items-center gap-2 rounded-[var(--radius-sm)] border px-3 text-sm lg:flex"
             >
               <Search className="size-4" />
-              <span className="flex-1 text-left">Search students, pages…</span>
+              <span className="flex-1 text-left">{t("shell.search")}</span>
               <kbd className="bg-card rounded border px-1.5 text-[11px] font-semibold">⌘K</kbd>
             </button>
             <LangToggle />
@@ -63,7 +63,7 @@ export function AppShell() {
               variant="outline"
               size="icon"
               className="relative size-9"
-              aria-label="Notifications"
+              aria-label={t("shell.notifications")}
             >
               <Bell className="size-4.5" />
               <span

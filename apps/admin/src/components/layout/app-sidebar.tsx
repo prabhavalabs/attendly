@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { hasPermission } from "@tuition/shared";
 
 import { useAuthStore } from "@/lib/auth-store";
+import { useT } from "@/lib/i18n";
 import { NAV_GROUPS } from "./nav-config";
 import { BrandGlyph, Wordmark } from "@/components/brand";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -25,6 +26,7 @@ export function AppSidebar() {
   const permissions = useAuthStore((s) => s.permissions);
   const user = useAuthStore((s) => s.user);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const t = useT();
 
   return (
     <Sidebar collapsible="icon">
@@ -41,17 +43,17 @@ export function AppSidebar() {
           if (items.length === 0) return null;
           return (
             <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupLabel>{t(group.key)}</SidebarGroupLabel>
               <SidebarMenu>
                 {items.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton
                       render={<Link to={item.to} />}
                       isActive={isActive(pathname, item.to)}
-                      tooltip={item.label}
+                      tooltip={t(item.key)}
                     >
                       <item.icon />
-                      <span>{item.label}</span>
+                      <span>{t(item.key)}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

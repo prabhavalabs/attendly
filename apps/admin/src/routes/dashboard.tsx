@@ -4,6 +4,7 @@ import type { SessionStatus } from "@tuition/shared";
 
 import { useAuthStore } from "@/lib/auth-store";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useT } from "@/lib/i18n";
 import { formatLKR } from "@/lib/money";
 import { timeAgo } from "@/lib/format";
 import { PageHeader } from "@/components/common/page-header";
@@ -20,23 +21,24 @@ export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.name.split(" ")[0] ?? "there";
   const { data, isLoading } = useDashboard();
+  const t = useT();
 
   const s = data?.summary;
   const kpis = [
-    { label: "Active students", value: s ? String(s.active_students) : "—", sub: "Enrolled this term", accent: "var(--brand-500)" },
-    { label: "Today's sessions", value: s ? String(s.today_sessions) : "—", sub: "Across all classes", accent: "var(--band-blue)" },
-    { label: "Outstanding fees", value: s ? formatLKR(s.outstanding_minor) : "—", sub: "Awaiting collection", accent: "var(--warn)" },
+    { label: t("dash.activeStudents"), value: s ? String(s.active_students) : "—", sub: t("dash.enrolledTerm"), accent: "var(--brand-500)" },
+    { label: t("dash.todaySessions"), value: s ? String(s.today_sessions) : "—", sub: t("dash.acrossClasses"), accent: "var(--band-blue)" },
+    { label: t("dash.outstanding"), value: s ? formatLKR(s.outstanding_minor) : "—", sub: t("dash.awaitingCollection"), accent: "var(--warn)" },
     {
-      label: "Attendance rate",
+      label: t("dash.attendanceRate"),
       value: s ? (s.attendance_rate == null ? "—" : `${Math.round(s.attendance_rate * 100)}%`) : "—",
-      sub: "Rolling 30 days",
+      sub: t("dash.rolling30"),
       accent: "var(--ok)",
     },
   ];
 
   return (
     <div className="p-6 md:p-8">
-      <PageHeader title={`Welcome back, ${firstName}`} description="Here's the shape of your class at a glance." />
+      <PageHeader title={`${t("dash.welcome")}, ${firstName}`} description={t("dash.subtitle")} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
@@ -56,24 +58,24 @@ export default function DashboardPage() {
         <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
           <div className="flex items-center gap-2 border-b px-5 py-3.5">
             <CalendarCheck className="text-muted-foreground size-4" />
-            <h3 className="font-display text-sm font-bold">Today's sessions</h3>
+            <h3 className="font-display text-sm font-bold">{t("dash.todayHeading")}</h3>
           </div>
           {isLoading ? (
             <div className="p-5"><Skeleton className="h-12 w-full" /></div>
           ) : (data?.today.length ?? 0) === 0 ? (
-            <p className="text-muted-foreground px-5 py-10 text-center text-sm">No sessions scheduled today.</p>
+            <p className="text-muted-foreground px-5 py-10 text-center text-sm">{t("dash.noSessionsToday")}</p>
           ) : (
             <ul className="divide-y">
-              {data!.today.map((t) => (
-                <li key={t.id}>
-                  <button type="button" className="hover:bg-muted/50 flex w-full items-center gap-3 px-5 py-3 text-left" onClick={() => void navigate({ to: "/sessions/$id", params: { id: t.id } })}>
-                    <span className="tnum text-muted-foreground w-24 text-sm font-medium">{t.start_time}–{t.end_time}</span>
+              {data!.today.map((sess) => (
+                <li key={sess.id}>
+                  <button type="button" className="hover:bg-muted/50 flex w-full items-center gap-3 px-5 py-3 text-left" onClick={() => void navigate({ to: "/sessions/$id", params: { id: sess.id } })}>
+                    <span className="tnum text-muted-foreground w-24 text-sm font-medium">{sess.start_time}–{sess.end_time}</span>
                     <span className="flex min-w-0 flex-1 items-center gap-2">
-                      <ClassChip band={t.band} code={t.code} />
-                      <span className="truncate text-sm font-semibold">{t.class_name}</span>
+                      <ClassChip band={sess.band} code={sess.code} />
+                      <span className="truncate text-sm font-semibold">{sess.class_name}</span>
                     </span>
-                    <span className="tnum text-muted-foreground hidden text-sm sm:inline">{t.present_count}/{t.enrolled_count}</span>
-                    <SessionStatusBadge status={t.status as SessionStatus} />
+                    <span className="tnum text-muted-foreground hidden text-sm sm:inline">{sess.present_count}/{sess.enrolled_count}</span>
+                    <SessionStatusBadge status={sess.status as SessionStatus} />
                   </button>
                 </li>
               ))}
@@ -86,12 +88,12 @@ export default function DashboardPage() {
           <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
             <div className="flex items-center gap-2 border-b px-5 py-3.5">
               <AlertTriangle className="text-muted-foreground size-4" />
-              <h3 className="font-display text-sm font-bold">Top defaulters</h3>
+              <h3 className="font-display text-sm font-bold">{t("dash.topDefaulters")}</h3>
             </div>
             {isLoading ? (
               <div className="p-5"><Skeleton className="h-10 w-full" /></div>
             ) : (data?.defaulters_top.length ?? 0) === 0 ? (
-              <p className="text-muted-foreground px-5 py-8 text-center text-sm">Everyone's paid up.</p>
+              <p className="text-muted-foreground px-5 py-8 text-center text-sm">{t("dash.allPaid")}</p>
             ) : (
               <ul className="divide-y">
                 {data!.defaulters_top.map((d) => (
@@ -113,7 +115,7 @@ export default function DashboardPage() {
           <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
             <div className="flex items-center gap-2 border-b px-5 py-3.5">
               <Activity className="text-muted-foreground size-4" />
-              <h3 className="font-display text-sm font-bold">Recent activity</h3>
+              <h3 className="font-display text-sm font-bold">{t("dash.recentActivity")}</h3>
             </div>
             {isLoading ? (
               <div className="p-5"><Skeleton className="h-10 w-full" /></div>
