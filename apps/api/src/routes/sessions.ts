@@ -6,6 +6,7 @@ import type { AppContext, Db } from "../types";
 import { parseBody, parseQuery } from "../lib/validate";
 import { newId, nowIso } from "../lib/id";
 import { writeAudit } from "../lib/db";
+import { syncSessionToCalendar } from "../lib/google";
 import { authenticate, requirePermission } from "../middleware/auth";
 
 const SESSION_SELECT = `
@@ -176,5 +177,7 @@ sessionsRoutes.patch("/:id", requirePermission("session.manage"), async (c) => {
   sets.push("updated_at = ?"); binds.push(nowIso());
   await db.prepare(`UPDATE class_sessions SET ${sets.join(", ")} WHERE id = ?`).bind(...binds, id).run();
   await writeAudit(db, { actorId: c.get("user").id, action: "session.update", entityType: "session", entityId: id, after: body });
+  // Best-effort Google Calendar sync (no-op unless connected); never blocks.
+  c.executionCtx.waitUntil(syncSessionToCalendar(db, c.env, id));
   return c.json(await getSession(db, id));
 });

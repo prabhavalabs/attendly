@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,6 +7,8 @@ import { toast } from "sonner";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import { usePermission } from "@/lib/auth-store";
 import { PageHeader } from "@/components/common/page-header";
+import { Can } from "@/components/auth/can";
+import { GoogleIntegration } from "@/components/settings/google-integration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +31,18 @@ export default function SettingsPage() {
     values: { org_name: data?.org_name ?? "", currency: data?.currency ?? "", timezone: data?.timezone ?? "" },
   });
 
+  // Handle the Google OAuth callback redirect (?google=connected|error).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const g = params.get("google");
+    if (!g) return;
+    if (g === "connected") toast.success("Google Calendar connected.");
+    else if (g === "error") toast.error("Google sign-in failed. Please try again.");
+    params.delete("google");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+  }, []);
+
   async function onSubmit(v: FormValues) {
     try {
       await update.mutateAsync(v);
@@ -38,7 +53,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="grid gap-6 p-6 md:p-8">
       <PageHeader title="Settings" description="Your organization profile and defaults." />
       <div className="bg-card max-w-xl rounded-2xl border p-6" style={{ boxShadow: "var(--sh-flat)" }}>
         {isLoading ? (
@@ -97,6 +112,10 @@ export default function SettingsPage() {
           </Form>
         )}
       </div>
+
+      <Can perm="integration.manage">
+        <GoogleIntegration />
+      </Can>
     </div>
   );
 }

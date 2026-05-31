@@ -91,3 +91,36 @@ export async function sha256Hex(input: string): Promise<string> {
 export function randomToken(bytes = 32): string {
   return toB64Url(crypto.getRandomValues(new Uint8Array(bytes)));
 }
+
+/* ------------------------- AES-GCM (at-rest secrets) --------------------- */
+
+async function aesKey(secret: string): Promise<CryptoKey> {
+  // Derive a stable 256-bit key from the secret string.
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode(secret));
+  return crypto.subtle.importKey("raw", hash, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+}
+
+/** Encrypt plaintext with AES-GCM; returns base64 of iv(12) || ciphertext. */
+export async function aesEncrypt(plaintext: string, secret: string): Promise<string> {
+  const key = await aesKey(secret);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(plaintext)));
+  const out = new Uint8Array(iv.length + ct.length);
+  out.set(iv, 0);
+  out.set(ct, iv.length);
+  return toB64(out);
+}
+
+/** Decrypt a value produced by aesEncrypt. Returns null on failure. */
+export async function aesDecrypt(payload: string, secret: string): Promise<string | null> {
+  try {
+    const bytes = fromB64(payload);
+    const iv = bytes.slice(0, 12);
+    const ct = bytes.slice(12);
+    const key = await aesKey(secret);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
+    return new TextDecoder().decode(pt);
+  } catch {
+    return null;
+  }
+}
