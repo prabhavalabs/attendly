@@ -20,7 +20,9 @@ import (
 
 	"attendly/api/internal/auth"
 	"attendly/api/internal/config"
+	"attendly/api/internal/dashboard"
 	"attendly/api/internal/httpapi"
+	"attendly/api/internal/settings"
 	"attendly/api/internal/store"
 	"attendly/api/migrations"
 )
@@ -80,6 +82,13 @@ func run() error {
 			r.Use(authSvc.Authenticate)
 			authH.MountAuthed(r)
 		})
+	})
+
+	// Authenticated domain endpoints.
+	r.Group(func(r chi.Router) {
+		r.Use(authSvc.Authenticate)
+		settings.New(db).Mount(r)
+		dashboard.New(db).Mount(r)
 	})
 
 	srv := &http.Server{
