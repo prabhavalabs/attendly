@@ -64,7 +64,7 @@ export interface EnrollmentListResult {
   page_size: number;
 }
 
-export function useEnrollments(classId: string | undefined, page = 1, pageSize = 20) {
+export function useEnrollments(classId: string | undefined, page = 1, pageSize = 15) {
   const qs = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   return useQuery({
     queryKey: ["enrollments", classId, page, pageSize],

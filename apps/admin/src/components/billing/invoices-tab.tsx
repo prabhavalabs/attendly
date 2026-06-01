@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ALL = "__all__";
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 const STATUS_ITEMS = [
   { value: ALL, label: "All statuses" },
   { value: "pending", label: "Pending" },
