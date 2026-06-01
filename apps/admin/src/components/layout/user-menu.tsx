@@ -1,11 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 
 import { useAuthStore } from "@/lib/auth-store";
 import { UserAvatar } from "@/components/common/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -18,7 +19,7 @@ export function UserMenu() {
   const logout = useAuthStore((s) => s.logout);
   if (!user) return null;
 
-  const primaryRole = user.roles[0]?.label ?? "Member";
+  const primaryRole = user.roles?.[0]?.label ?? "Member";
 
   async function handleLogout() {
     await logout();
@@ -31,19 +32,26 @@ export function UserMenu() {
         <UserAvatar name={user.name} seed={user.id} size={34} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuLabel className="flex items-center gap-3 py-2">
-          <UserAvatar name={user.name} seed={user.id} size={36} />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{user.name}</div>
-            <div className="text-muted-foreground truncate text-xs">{user.email}</div>
-          </div>
-        </DropdownMenuLabel>
+        {/* GroupLabel must live inside a Group (base-ui requirement). */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex items-center gap-3 py-2">
+            <UserAvatar name={user.name} seed={user.id} size={36} />
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold">{user.name}</div>
+              <div className="text-muted-foreground truncate text-xs">{user.email}</div>
+            </div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <div className="px-2 pb-1.5">
           <span className="bg-accent text-accent-foreground inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase">
             {primaryRole}
           </span>
         </div>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
+          <Settings className="size-4" />
+          Settings
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
           <LogOut className="size-4" />
           Sign out
