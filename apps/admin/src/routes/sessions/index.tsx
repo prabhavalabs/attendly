@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ALL = "__all__";
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 export default function SessionsPage() {

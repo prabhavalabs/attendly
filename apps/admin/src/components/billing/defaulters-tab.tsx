@@ -8,7 +8,7 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { Pager } from "@/components/common/pager";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 
 export function DefaultersTab() {
   const navigate = useNavigate();

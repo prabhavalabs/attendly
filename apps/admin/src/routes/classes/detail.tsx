@@ -40,7 +40,7 @@ export default function ClassDetailPage() {
   const { search, setSearch } = useUrlSearch<ClassDetailSearch>();
   const tab = search.tab ?? "enrollments";
   const page = asPage(search.page);
-  const ENROLL_PAGE_SIZE = 20;
+  const ENROLL_PAGE_SIZE = 15;
   const { data: cls, isLoading, isError } = useClass(id);
   const { data: enrollData } = useEnrollments(id, page, ENROLL_PAGE_SIZE);
   const { data: enrolledIds } = useEnrolledStudentIds(id);

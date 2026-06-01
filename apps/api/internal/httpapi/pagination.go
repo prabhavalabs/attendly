@@ -13,10 +13,10 @@ type Page struct {
 	Offset   int
 }
 
-// ParsePage reads ?page and ?page_size (defaults 1 / 20, page_size capped at 100).
+// ParsePage reads ?page and ?page_size (defaults 1 / 15, page_size capped at 100).
 func ParsePage(r *http.Request) Page {
 	page := clampAtoi(r.URL.Query().Get("page"), 1, 1, 1<<30)
-	size := clampAtoi(r.URL.Query().Get("page_size"), 20, 1, 100)
+	size := clampAtoi(r.URL.Query().Get("page_size"), 15, 1, 100)
 	return Page{Page: page, PageSize: size, Limit: size, Offset: (page - 1) * size}
 }
 

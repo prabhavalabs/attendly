@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 15;
 
 const FILTERS: { label: string; value?: StudentStatus }[] = [
   { label: "All" },
