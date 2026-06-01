@@ -19,9 +19,11 @@ import (
 	"github.com/go-chi/cors"
 
 	"attendly/api/internal/auth"
+	"attendly/api/internal/classes"
 	"attendly/api/internal/config"
 	"attendly/api/internal/dashboard"
 	"attendly/api/internal/httpapi"
+	"attendly/api/internal/lecturers"
 	"attendly/api/internal/settings"
 	"attendly/api/internal/storage"
 	"attendly/api/internal/store"
@@ -102,6 +104,8 @@ func run() error {
 		settings.New(db).Mount(r)
 		dashboard.New(db).Mount(r)
 		students.New(db, objects).Mount(r)
+		lecturers.New(db).Mount(r)
+		classes.New(db).Mount(r)
 	})
 
 	srv := &http.Server{
