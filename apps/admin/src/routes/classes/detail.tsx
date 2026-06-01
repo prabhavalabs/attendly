@@ -4,12 +4,21 @@ import { Pencil, Trash2, Plus, MoreHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Enrollment } from "@tuition/shared";
 
-import { useClass, useEnrollments, useUnenroll, useDeleteClass } from "@/hooks/use-classes";
+import {
+  useClass,
+  useEnrollments,
+  useEnrolledStudentIds,
+  useUnenroll,
+  useDeleteClass,
+} from "@/hooks/use-classes";
+import { useUrlSearch, asPage } from "@/lib/url-search";
+import type { ClassDetailSearch } from "@/router";
 import { formatLKR } from "@/lib/money";
 import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Pager } from "@/components/common/pager";
 import { BAND_VAR, ClassChip } from "@/components/classes/band";
 import { ClassDialog } from "@/components/classes/class-dialog";
 import { EnrollmentFeeDialog } from "@/components/classes/enrollment-fee-dialog";
@@ -28,8 +37,13 @@ import {
 export default function ClassDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
   const navigate = useNavigate();
+  const { search, setSearch } = useUrlSearch<ClassDetailSearch>();
+  const tab = search.tab ?? "enrollments";
+  const page = asPage(search.page);
+  const ENROLL_PAGE_SIZE = 20;
   const { data: cls, isLoading, isError } = useClass(id);
-  const { data: enrollments } = useEnrollments(id);
+  const { data: enrollData } = useEnrollments(id, page, ENROLL_PAGE_SIZE);
+  const { data: enrolledIds } = useEnrolledStudentIds(id);
   const unenroll = useUnenroll(id);
   const deleteClass = useDeleteClass();
 
@@ -54,7 +68,7 @@ export default function ClassDetailPage() {
     );
   }
 
-  const enrolledIds = new Set((enrollments ?? []).map((e) => e.student.id));
+  const enrollments = enrollData?.enrollments ?? [];
 
   return (
     <Page crumbs={[{ label: "Classes", to: "/classes" }, { label: cls.name }]}>
@@ -102,7 +116,12 @@ export default function ClassDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="enrollments">
+      <Tabs
+        value={tab}
+        onValueChange={(v) =>
+          setSearch({ tab: v === "timetable" ? "timetable" : undefined, page: 1 })
+        }
+      >
         <TabsList>
           <TabsTrigger value="enrollments">Enrollments ({cls.enrolled_count})</TabsTrigger>
           <TabsTrigger value="timetable">Timetable ({cls.timetable.length})</TabsTrigger>
@@ -116,14 +135,14 @@ export default function ClassDetailPage() {
               </Button>
             </Can>
           </div>
-          {(enrollments ?? []).length === 0 ? (
+          {enrollments.length === 0 ? (
             <div className="bg-card text-muted-foreground rounded-2xl border py-12 text-center text-sm" style={{ boxShadow: "var(--sh-flat)" }}>
               No students enrolled yet.
             </div>
           ) : (
             <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
               <ul className="divide-y">
-                {(enrollments ?? []).map((e) => (
+                {enrollments.map((e) => (
                   <li key={e.id} className="flex items-center gap-3 px-5 py-3">
                     <UserAvatar name={e.student.full_name} seed={e.student.id} photoUrl={e.student.photo_url} size={34} />
                     <button
@@ -151,6 +170,15 @@ export default function ClassDetailPage() {
               </ul>
             </div>
           )}
+          {enrollData ? (
+            <Pager
+              page={page}
+              pageSize={ENROLL_PAGE_SIZE}
+              total={enrollData.total}
+              noun="student"
+              onPageChange={(p) => setSearch({ page: p })}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="timetable" className="mt-5">
@@ -160,7 +188,7 @@ export default function ClassDetailPage() {
 
       <ClassDialog open={editOpen} onOpenChange={setEditOpen} cls={cls} />
       <EnrollmentFeeDialog classId={id} enrollment={editFee} open={!!editFee} onOpenChange={(o) => !o && setEditFee(null)} />
-      <EnrollDialog classId={id} enrolledIds={enrolledIds} open={enrollOpen} onOpenChange={setEnrollOpen} />
+      <EnrollDialog classId={id} enrolledIds={enrolledIds ?? new Set()} open={enrollOpen} onOpenChange={setEnrollOpen} />
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}

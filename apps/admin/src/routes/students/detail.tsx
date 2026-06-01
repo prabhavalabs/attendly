@@ -81,7 +81,8 @@ export default function StudentDetailPage() {
   const navigate = useNavigate();
   const { data: student, isLoading, isError } = useStudent(id);
   const { data: enrollments } = useStudentEnrollments(id);
-  const { data: invoices } = useInvoices({ student_id: id });
+  const { data: invoiceData } = useInvoices({ student_id: id });
+  const invoices = invoiceData?.invoices;
 
   const issueCard = useIssueCard(id);
   const revokeCard = useRevokeCard(id);

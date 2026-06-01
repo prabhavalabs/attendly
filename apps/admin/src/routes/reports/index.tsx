@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Download } from "lucide-react";
 
 import { useAttendanceReport, useRevenueReport, downloadReportCsv } from "@/hooks/use-reports";
+import { useUrlSearch } from "@/lib/url-search";
+import type { ReportsSearch } from "@/router";
 import { formatLKR } from "@/lib/money";
 import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
@@ -21,16 +23,17 @@ function pct(rate: number | null): string {
 }
 
 function AttendanceReport() {
+  const { search, setSearch } = useUrlSearch<ReportsSearch>();
   const today = useMemo(() => new Date(), []);
-  const [from, setFrom] = useState(iso(new Date(today.getTime() - 30 * 86_400_000)));
-  const [to, setTo] = useState(iso(today));
+  const from = search.from ?? iso(new Date(today.getTime() - 30 * 86_400_000));
+  const to = search.to ?? iso(today);
   const { data: rows, isLoading } = useAttendanceReport({ from, to });
 
   return (
     <div>
       <div className="bg-card mb-4 flex flex-wrap items-end gap-3 rounded-2xl border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
-        <div className="grid gap-1.5"><Label className="text-xs">From</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" /></div>
-        <div className="grid gap-1.5"><Label className="text-xs">To</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" /></div>
+        <div className="grid gap-1.5"><Label className="text-xs">From</Label><Input type="date" value={from} onChange={(e) => setSearch({ from: e.target.value })} className="w-40" /></div>
+        <div className="grid gap-1.5"><Label className="text-xs">To</Label><Input type="date" value={to} onChange={(e) => setSearch({ to: e.target.value })} className="w-40" /></div>
         <div className="ml-auto">
           <Can perm="report.export">
             <Button variant="outline" onClick={() => void downloadReportCsv(`/api/reports/attendance?from=${from}&to=${to}&format=csv`, "attendance.csv")}>
@@ -110,9 +113,11 @@ function RevenueReport() {
 }
 
 export default function ReportsPage() {
+  const { search, setSearch } = useUrlSearch<ReportsSearch>();
+  const tab = search.tab ?? "attendance";
   return (
     <Page title="Reports" description="Attendance, revenue and defaulters — view and export.">
-      <Tabs defaultValue="attendance">
+      <Tabs value={tab} onValueChange={(v) => setSearch({ tab: v === "attendance" ? undefined : (v as ReportsSearch["tab"]), page: 1 })}>
         <TabsList>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>

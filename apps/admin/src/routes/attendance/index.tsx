@@ -16,7 +16,8 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 export default function AttendancePage() {
   const navigate = useNavigate();
   const [date, setDate] = useState(iso(new Date()));
-  const { data: sessions, isLoading } = useSessions({ from: date, to: date });
+  const { data, isLoading } = useSessions({ from: date, to: date });
+  const sessions = data?.sessions;
 
   return (
     <Page title="Attendance" description="Pick a day and open a session to mark the roster.">

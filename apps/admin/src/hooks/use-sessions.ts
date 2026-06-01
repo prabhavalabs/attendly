@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   ClassSession,
   GenerateSessionsInput,
@@ -14,6 +14,15 @@ export interface SessionListParams {
   to?: string;
   class_id?: string;
   status?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface SessionListResult {
+  sessions: ClassSession[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export function useSessions(params: SessionListParams) {
@@ -22,10 +31,13 @@ export function useSessions(params: SessionListParams) {
   if (params.to) qs.set("to", params.to);
   if (params.class_id) qs.set("class_id", params.class_id);
   if (params.status) qs.set("status", params.status);
+  if (params.page) qs.set("page", String(params.page));
+  if (params.page_size) qs.set("page_size", String(params.page_size));
   const query = qs.toString();
   return useQuery({
     queryKey: ["sessions", params],
-    queryFn: () => api.get<{ sessions: ClassSession[] }>(`/api/sessions${query ? `?${query}` : ""}`).then((r) => r.sessions),
+    queryFn: () => api.get<SessionListResult>(`/api/sessions${query ? `?${query}` : ""}`),
+    placeholderData: keepPreviousData,
   });
 }
 
