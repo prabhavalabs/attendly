@@ -19,6 +19,45 @@ export function useStudentEnrollments(id: string | undefined) {
   });
 }
 
+export interface StudentSummary {
+  attendance_rate: number | null;
+  outstanding_minor: number;
+  enrolled_count: number;
+  fee_status: "paid" | "due" | "overdue";
+}
+
+export function useStudentSummary(id: string | undefined) {
+  return useQuery({
+    queryKey: ["student-summary", id],
+    queryFn: () => api.get<StudentSummary>(`/api/students/${id}/summary`),
+    enabled: !!id,
+  });
+}
+
+/** A single recent session row in the attendance tab. */
+export interface AttendanceRecent {
+  session_date: string;
+  start_time: string;
+  class_name: string;
+  status: "present" | "late" | "absent" | "excused";
+  method: string | null;
+  checked_in_at: string | null;
+}
+
+export interface StudentAttendance {
+  /** 35 day-codes, oldest first: "" none, "p" present, "l" late, "x" excused, "a" absent. */
+  heatmap: string[];
+  recent: AttendanceRecent[];
+}
+
+export function useStudentAttendance(id: string | undefined) {
+  return useQuery({
+    queryKey: ["student-attendance", id],
+    queryFn: () => api.get<StudentAttendance>(`/api/students/${id}/attendance`),
+    enabled: !!id,
+  });
+}
+
 export interface StudentListParams {
   q?: string;
   status?: StudentStatus;
