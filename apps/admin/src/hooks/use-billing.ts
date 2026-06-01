@@ -107,3 +107,11 @@ export async function openReceiptPdf(paymentId: string): Promise<void> {
   window.open(url, "_blank", "noopener");
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+/** Fetch an invoice PDF (authenticated) and open it in a new tab. */
+export async function openInvoicePdf(invoiceId: string): Promise<void> {
+  const blob = await api.blob(`/api/invoices/${invoiceId}/invoice.pdf`);
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
