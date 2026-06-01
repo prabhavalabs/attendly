@@ -5,9 +5,12 @@ import type { Invoice } from "@tuition/shared";
 
 import { useInvoices } from "@/hooks/use-billing";
 import { useClasses } from "@/hooks/use-classes";
+import { useUrlSearch, asPage, asString } from "@/lib/url-search";
+import type { BillingSearch } from "@/router";
 import { formatLKR } from "@/lib/money";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
+import { Pager } from "@/components/common/pager";
 import { InvoiceStatusBadge } from "@/components/billing/invoice-status";
 import { GenerateInvoicesDialog } from "@/components/billing/generate-invoices-dialog";
 import { PaymentDialog } from "@/components/billing/payment-dialog";
@@ -26,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ALL = "__all__";
+const PAGE_SIZE = 20;
 const STATUS_ITEMS = [
   { value: ALL, label: "All statuses" },
   { value: "pending", label: "Pending" },
@@ -38,20 +42,26 @@ const STATUS_ITEMS = [
 export function InvoicesTab() {
   const navigate = useNavigate();
   const today = useMemo(() => new Date().toISOString().slice(0, 7), []);
-  const [period, setPeriod] = useState(today);
-  const [status, setStatus] = useState(ALL);
-  const [classId, setClassId] = useState(ALL);
+  const { search, setSearch } = useUrlSearch<BillingSearch>();
+
+  const period = asString(search.period) || today;
+  const status = asString(search.status) || ALL;
+  const classId = asString(search.class_id) || ALL;
+  const page = asPage(search.page);
 
   const [genOpen, setGenOpen] = useState(false);
   const [paying, setPaying] = useState<Invoice | null>(null);
   const [waiving, setWaiving] = useState<Invoice | null>(null);
 
   const { data: classes } = useClasses();
-  const { data: invoices, isLoading } = useInvoices({
+  const { data, isLoading } = useInvoices({
     period: period || undefined,
     status: status === ALL ? undefined : status,
     class_id: classId === ALL ? undefined : classId,
+    page,
+    page_size: PAGE_SIZE,
   });
+  const invoices = data?.invoices;
 
   const classItems = [{ value: ALL, label: "All classes" }, ...(classes ?? []).map((c) => ({ value: c.id, label: c.name }))];
 
@@ -60,18 +70,18 @@ export function InvoicesTab() {
       <div className="bg-card mb-4 flex flex-wrap items-end gap-3 rounded-2xl border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
         <div className="grid gap-1.5">
           <Label className="text-xs">Month</Label>
-          <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="w-40" />
+          <Input type="month" value={period} onChange={(e) => setSearch({ period: e.target.value || undefined, page: 1 })} className="w-40" />
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">Status</Label>
-          <Select value={status} onValueChange={(v) => setStatus(v ?? ALL)} items={STATUS_ITEMS}>
+          <Select value={status} onValueChange={(v) => setSearch({ status: !v || v === ALL ? undefined : v, page: 1 })} items={STATUS_ITEMS}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>{STATUS_ITEMS.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">Class</Label>
-          <Select value={classId} onValueChange={(v) => setClassId(v ?? ALL)} items={classItems}>
+          <Select value={classId} onValueChange={(v) => setSearch({ class_id: !v || v === ALL ? undefined : v, page: 1 })} items={classItems}>
             <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
             <SelectContent>{classItems.map((it) => <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>)}</SelectContent>
           </Select>
@@ -162,6 +172,16 @@ export function InvoicesTab() {
           </TableBody>
         </Table>
       </div>
+
+      {!isLoading ? (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={data?.total ?? 0}
+          noun="invoice"
+          onPageChange={(p) => setSearch({ page: p })}
+        />
+      ) : null}
 
       <GenerateInvoicesDialog open={genOpen} onOpenChange={setGenOpen} defaultPeriod={period || today} />
       <PaymentDialog invoice={paying} open={!!paying} onOpenChange={(o) => !o && setPaying(null)} />

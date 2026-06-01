@@ -6,7 +6,10 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
+import type { StudentStatus } from "@tuition/shared";
+
 import { useAuthStore, checkPermission } from "@/lib/auth-store";
+import { asPage, asString } from "@/lib/url-search";
 import { AppShell } from "@/components/layout/app-shell";
 import { Placeholder } from "@/routes/placeholder";
 import LoginPage from "@/routes/login";
@@ -70,10 +73,23 @@ const usersRoute = createRoute({
   component: UsersPage,
 });
 
+const STUDENT_STATUSES: StudentStatus[] = ["active", "inactive", "graduated", "withdrawn"];
+
+export type StudentsSearch = { page?: number; q?: string; status?: StudentStatus };
+
 const studentsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/students",
   beforeLoad: guard("student.read"),
+  validateSearch: (s: Record<string, unknown>): StudentsSearch => {
+    const out: StudentsSearch = {};
+    if (STUDENT_STATUSES.includes(s.status as StudentStatus)) out.status = s.status as StudentStatus;
+    const q = asString(s.q);
+    if (q) out.q = q;
+    const page = asPage(s.page);
+    if (page > 1) out.page = page;
+    return out;
+  },
   component: StudentsPage,
 });
 
@@ -91,10 +107,19 @@ const classesRoute = createRoute({
   component: ClassesPage,
 });
 
+export type ClassDetailSearch = { tab?: "timetable"; page?: number };
+
 const classDetailRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/classes/$id",
   beforeLoad: guard("class.read"),
+  validateSearch: (s: Record<string, unknown>): ClassDetailSearch => {
+    const out: ClassDetailSearch = {};
+    if (s.tab === "timetable") out.tab = "timetable";
+    const page = asPage(s.page);
+    if (page > 1) out.page = page;
+    return out;
+  },
   component: ClassDetailPage,
 });
 
@@ -105,10 +130,24 @@ const timetableRoute = createRoute({
   component: TimetablePage,
 });
 
+export type SessionsSearch = { from?: string; to?: string; class_id?: string; page?: number };
+
 const sessionsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/sessions",
   beforeLoad: guard("session.read"),
+  validateSearch: (s: Record<string, unknown>): SessionsSearch => {
+    const out: SessionsSearch = {};
+    const from = asString(s.from);
+    if (from) out.from = from;
+    const to = asString(s.to);
+    if (to) out.to = to;
+    const classId = asString(s.class_id);
+    if (classId) out.class_id = classId;
+    const page = asPage(s.page);
+    if (page > 1) out.page = page;
+    return out;
+  },
   component: SessionsPage,
 });
 
@@ -126,17 +165,56 @@ const attendanceRoute = createRoute({
   component: AttendancePage,
 });
 
+export type BillingSearch = {
+  tab?: "defaulters";
+  page?: number;
+  period?: string;
+  status?: string;
+  class_id?: string;
+};
+
 const billingRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/billing",
   beforeLoad: guard("invoice.read"),
+  validateSearch: (s: Record<string, unknown>): BillingSearch => {
+    const out: BillingSearch = {};
+    if (s.tab === "defaulters") out.tab = "defaulters";
+    const period = asString(s.period);
+    if (period) out.period = period;
+    const status = asString(s.status);
+    if (status) out.status = status;
+    const classId = asString(s.class_id);
+    if (classId) out.class_id = classId;
+    const page = asPage(s.page);
+    if (page > 1) out.page = page;
+    return out;
+  },
   component: BillingPage,
 });
+
+export type ReportsSearch = {
+  tab?: "revenue" | "defaulters";
+  page?: number;
+  from?: string;
+  to?: string;
+};
 
 const reportsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/reports",
   beforeLoad: guard("report.read"),
+  validateSearch: (s: Record<string, unknown>): ReportsSearch => {
+    const out: ReportsSearch = {};
+    if (s.tab === "revenue" || s.tab === "defaulters") out.tab = s.tab;
+    const from = asString(s.from);
+    if (from) out.from = from;
+    const to = asString(s.to);
+    if (to) out.to = to;
+    const page = asPage(s.page);
+    if (page > 1) out.page = page;
+    return out;
+  },
   component: ReportsPage,
 });
 

@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
-import { Link, useParams } from "@tanstack/react-router";
+import { useParams } from "@tanstack/react-router";
 import {
-  ChevronLeft,
   Pencil,
   Printer,
   CreditCard,
@@ -23,6 +22,7 @@ import {
   useRevokeCard,
   useRemoveGuardian,
   useStudentEnrollments,
+  useStudentSummary,
   useUploadPhoto,
   useRemovePhoto,
   openCardPdf,
@@ -30,6 +30,7 @@ import {
 import { useInvoices } from "@/hooks/use-billing";
 import { formatDate } from "@/lib/format";
 import { formatLKR } from "@/lib/money";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -38,6 +39,7 @@ import { StudentDialog } from "@/components/students/student-dialog";
 import { GuardianDialog } from "@/components/students/guardian-dialog";
 import { ClassChip } from "@/components/classes/band";
 import { StatusBadge } from "@/components/common/status-badge";
+import { AttendanceTab } from "@/components/students/attendance-tab";
 import { InvoiceStatusBadge } from "@/components/billing/invoice-status";
 import { PaymentDialog } from "@/components/billing/payment-dialog";
 import { Button } from "@/components/ui/button";
@@ -58,13 +60,40 @@ const REL_LABELS: Record<Guardian["relationship"], string> = {
   other: "Other",
 };
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  valueColor,
+}: {
+  label: string;
+  value: React.ReactNode;
+  valueColor?: string;
+}) {
   return (
     <div className="bg-card rounded-[var(--radius-md)] border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
       <div className="text-muted-foreground mb-1.5 text-xs font-semibold">{label}</div>
-      <div className="font-display text-lg font-bold tracking-tight">{value}</div>
+      <div
+        className="font-display text-lg font-bold tracking-tight"
+        style={valueColor ? { color: valueColor } : undefined}
+      >
+        {value}
+      </div>
     </div>
   );
+}
+
+const FEE_STATUS: Record<string, { label: string; color: string }> = {
+  paid: { label: "Settled", color: "var(--ok-ink)" },
+  due: { label: "Due", color: "var(--warn-ink)" },
+  overdue: { label: "Overdue", color: "var(--bad-ink)" },
+};
+
+/** Colour the attendance rate by the same ≥85 / ≥70 thresholds as the design. */
+function attendanceColor(rate: number | null): string | undefined {
+  if (rate == null) return undefined;
+  if (rate >= 0.85) return "var(--ok-ink)";
+  if (rate >= 0.7) return "var(--warn-ink)";
+  return "var(--bad-ink)";
 }
 
 function ProfileRow({ label, value }: { label: string; value: string | null }) {
@@ -81,7 +110,9 @@ export default function StudentDetailPage() {
   const navigate = useNavigate();
   const { data: student, isLoading, isError } = useStudent(id);
   const { data: enrollments } = useStudentEnrollments(id);
-  const { data: invoices } = useInvoices({ student_id: id });
+  const { data: summary } = useStudentSummary(id);
+  const { data: invoiceData } = useInvoices({ student_id: id });
+  const invoices = invoiceData?.invoices;
 
   const issueCard = useIssueCard(id);
   const revokeCard = useRevokeCard(id);
@@ -115,20 +146,16 @@ export default function StudentDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8">
-        <Skeleton className="mb-4 h-4 w-24" />
+      <Page crumbs={[{ label: "Students", to: "/students" }, { label: "…" }]}>
         <Skeleton className="h-40 w-full rounded-2xl" />
-      </div>
+      </Page>
     );
   }
   if (isError || !student) {
     return (
-      <div className="p-6 md:p-8">
-        <Link to="/students" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
-          <ChevronLeft className="size-4" /> Students
-        </Link>
+      <Page crumbs={[{ label: "Students", to: "/students" }, { label: "Not found" }]}>
         <div className="text-muted-foreground mt-10 text-center text-sm">Student not found.</div>
-      </div>
+      </Page>
     );
   }
 
@@ -143,11 +170,7 @@ export default function StudentDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6 md:p-8">
-      <Link to="/students" className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm">
-        <ChevronLeft className="size-4" /> Students
-      </Link>
-
+    <Page crumbs={[{ label: "Students", to: "/students" }, { label: student.full_name }]}>
       {/* Hero — the card motif */}
       <div
         className="bg-card relative mb-5 overflow-hidden rounded-2xl border p-6"
@@ -235,20 +258,33 @@ export default function StudentDetailPage() {
         </div>
       </div>
 
-      {/* Mini-stats */}
+      {/* KPI mini-stats */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Reg no" value={student.reg_no} />
-        <Stat label="Card issued" value={formatDate(student.card_issued_at)} />
-        <Stat label="Guardians" value={String(student.guardians.length)} />
-        <Stat label="Phone" value={student.phone ?? "—"} />
+        <Stat
+          label="Attendance"
+          value={summary?.attendance_rate == null ? "—" : `${Math.round(summary.attendance_rate * 100)}%`}
+          valueColor={attendanceColor(summary?.attendance_rate ?? null)}
+        />
+        <Stat
+          label={summary && summary.outstanding_minor > 0 ? "Outstanding" : "Balance"}
+          value={summary == null ? "—" : summary.outstanding_minor > 0 ? formatLKR(summary.outstanding_minor) : "Settled"}
+          valueColor={summary && summary.outstanding_minor > 0 ? "var(--bad-ink)" : "var(--ok-ink)"}
+        />
+        <Stat label="Enrolled classes" value={summary == null ? "—" : String(summary.enrolled_count)} />
+        <Stat
+          label="Fee status"
+          value={summary ? (FEE_STATUS[summary.fee_status]?.label ?? summary.fee_status) : "—"}
+          valueColor={summary ? FEE_STATUS[summary.fee_status]?.color : undefined}
+        />
       </div>
 
       <Tabs defaultValue="profile">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="enrollments">Enrollments ({enrollments?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <Can perm="invoice.read" fallback={<span />}>
-            <TabsTrigger value="fees">Fees</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
           </Can>
           <TabsTrigger value="guardians">Guardians ({student.guardians.length})</TabsTrigger>
         </TabsList>
@@ -287,7 +323,11 @@ export default function StudentDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="fees" className="mt-5">
+        <TabsContent value="attendance" className="mt-5">
+          <AttendanceTab studentId={id} />
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-5">
           {(invoices?.length ?? 0) === 0 ? (
             <div className="bg-card text-muted-foreground rounded-2xl border py-12 text-center text-sm" style={{ boxShadow: "var(--sh-flat)" }}>
               No invoices yet.
@@ -419,6 +459,6 @@ export default function StudentDetailPage() {
         destructive={cardAction === "revoke"}
         onConfirm={confirmCardAction}
       />
-    </div>
+    </Page>
   );
 }

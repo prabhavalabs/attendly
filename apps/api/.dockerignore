@@ -6,3 +6,5 @@ attendly-api
 *.db-shm
 *.db-wal
 README.md
+tmp/
+.air.toml

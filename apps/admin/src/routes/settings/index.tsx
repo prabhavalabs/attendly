@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import { usePermission } from "@/lib/auth-store";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { GoogleIntegration } from "@/components/settings/google-integration";
 import { Button } from "@/components/ui/button";
@@ -53,8 +53,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="grid gap-6 p-6 md:p-8">
-      <PageHeader title="Settings" description="Your organization profile and defaults." />
+    <Page title="Settings" description="Your organization profile and defaults." contentClassName="grid gap-6">
       <div className="bg-card max-w-xl rounded-2xl border p-6" style={{ boxShadow: "var(--sh-flat)" }}>
         {isLoading ? (
           <div className="grid gap-4">
@@ -116,6 +115,6 @@ export default function SettingsPage() {
       <Can perm="integration.manage">
         <GoogleIntegration />
       </Can>
-    </div>
+    </Page>
   );
 }

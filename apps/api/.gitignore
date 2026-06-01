@@ -8,3 +8,6 @@
 # Build output
 /bin/
 attendly-api
+
+# air live-reload temp
+tmp/

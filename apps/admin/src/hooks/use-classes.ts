@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type {
   Class,
   CreateClassInput,
@@ -57,11 +57,37 @@ export function useDeleteClass() {
 
 /* ------------------------------ Enrollments ------------------------------ */
 
-export function useEnrollments(classId: string | undefined) {
+export interface EnrollmentListResult {
+  enrollments: Enrollment[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export function useEnrollments(classId: string | undefined, page = 1, pageSize = 20) {
+  const qs = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   return useQuery({
-    queryKey: ["enrollments", classId],
-    queryFn: () => api.get<{ enrollments: Enrollment[] }>(`/api/classes/${classId}/enrollments`).then((r) => r.enrollments),
+    queryKey: ["enrollments", classId, page, pageSize],
+    queryFn: () => api.get<EnrollmentListResult>(`/api/classes/${classId}/enrollments?${qs.toString()}`),
     enabled: !!classId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The set of student ids already enrolled in a class — used by the enroll
+ * dialog to mark search results as "Enrolled". Server caps page_size at 100
+ * (classes are capacity-bound, so this covers the roster); the enroll endpoint
+ * still rejects true duplicates with 409, so an over-large roster is safe.
+ */
+export function useEnrolledStudentIds(classId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["enrollment-ids", classId],
+    queryFn: () =>
+      api
+        .get<{ enrollments: Enrollment[] }>(`/api/classes/${classId}/enrollments?page_size=100`)
+        .then((r) => new Set(r.enrollments.map((e) => e.student.id))),
+    enabled: !!classId && enabled,
   });
 }
 
@@ -72,6 +98,7 @@ export function useEnroll(classId: string) {
       api.post<{ enrollments: Enrollment[] }>(`/api/classes/${classId}/enrollments`, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["enrollments", classId] });
+      qc.invalidateQueries({ queryKey: ["enrollment-ids", classId] });
       qc.invalidateQueries({ queryKey: ["class", classId] });
       qc.invalidateQueries({ queryKey: ["classes"] });
     },
@@ -97,6 +124,7 @@ export function useUnenroll(classId: string) {
       api.delete<{ enrollments: Enrollment[] }>(`/api/classes/${classId}/enrollments/${enrollmentId}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["enrollments", classId] });
+      qc.invalidateQueries({ queryKey: ["enrollment-ids", classId] });
       qc.invalidateQueries({ queryKey: ["class", classId] });
       qc.invalidateQueries({ queryKey: ["classes"] });
     },

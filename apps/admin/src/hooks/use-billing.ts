@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type {
   Invoice,
   GenerateInvoicesInput,
@@ -14,6 +14,15 @@ export interface InvoiceListParams {
   status?: string;
   student_id?: string;
   class_id?: string;
+  page?: number;
+  page_size?: number;
+}
+
+interface InvoiceListResult {
+  invoices: Invoice[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export function useInvoices(params: InvoiceListParams) {
@@ -22,10 +31,13 @@ export function useInvoices(params: InvoiceListParams) {
   if (params.status) qs.set("status", params.status);
   if (params.student_id) qs.set("student_id", params.student_id);
   if (params.class_id) qs.set("class_id", params.class_id);
+  if (params.page) qs.set("page", String(params.page));
+  if (params.page_size) qs.set("page_size", String(params.page_size));
   const query = qs.toString();
   return useQuery({
     queryKey: ["invoices", params],
-    queryFn: () => api.get<{ invoices: Invoice[] }>(`/api/invoices${query ? `?${query}` : ""}`).then((r) => r.invoices),
+    queryFn: () => api.get<InvoiceListResult>(`/api/invoices${query ? `?${query}` : ""}`),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -64,10 +76,27 @@ export function useRecordPayment() {
   });
 }
 
-export function useDefaulters() {
+export interface DefaulterListParams {
+  page?: number;
+  page_size?: number;
+}
+
+interface DefaulterListResult {
+  defaulters: Defaulter[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export function useDefaulters(params: DefaulterListParams = {}) {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.page_size) qs.set("page_size", String(params.page_size));
+  const query = qs.toString();
   return useQuery({
-    queryKey: ["defaulters"],
-    queryFn: () => api.get<{ defaulters: Defaulter[] }>("/api/reports/defaulters").then((r) => r.defaulters),
+    queryKey: ["defaulters", params],
+    queryFn: () => api.get<DefaulterListResult>(`/api/reports/defaulters${query ? `?${query}` : ""}`),
+    placeholderData: keepPreviousData,
   });
 }
 

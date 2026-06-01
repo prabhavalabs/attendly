@@ -16,8 +16,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/attendl
 # (distroless has no shell, so we can't mkdir/chown in the final stage).
 RUN mkdir -p /data/assets
 
-# --- runtime stage: distroless, non-root ------------------------------------
-FROM gcr.io/distroless/static-debian12:nonroot
+# --- runtime stage: distroless, non-root (production default) ----------------
+FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 COPY --from=build /out/attendly-api /attendly-api
 # nonroot uid:gid is 65532 — own /data so the app can write the SQLite db +
 # assets. An empty named volume mounted here inherits this ownership.
@@ -31,3 +31,14 @@ EXPOSE 8787
 VOLUME ["/data"]
 USER nonroot:nonroot
 ENTRYPOINT ["/attendly-api"]
+
+# --- dev stage: Go live-reload with air (used by docker-compose.dev.yml) -----
+# Source is bind-mounted at /src; air rebuilds + restarts on every save.
+FROM golang:1.25-alpine AS dev
+WORKDIR /src
+RUN go install github.com/air-verse/air@latest
+ENV ADDR=:8787 \
+    DB_PATH=/data/attendly.db \
+    ASSETS_DIR=/data/assets
+EXPOSE 8787
+CMD ["air", "-c", ".air.toml"]
