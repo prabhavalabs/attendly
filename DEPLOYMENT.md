@@ -21,7 +21,7 @@ CI (`ci.yml`) runs on every PR and push to `develop`/`main`: Go `vet` +
                                                               └─▶ 127.0.0.1:8787  (attendly-backend container)
                                                                     └─▶ /data volume (SQLite + uploads)
 
- <admin-domain> (Vercel)  ──fetch──▶  https://attendly-api.junioremployer.com
+ attendly.junioremployer.com (Vercel)  ──fetch──▶  https://attendly-api.junioremployer.com
 ```
 
 The VPS is **shared** with other stacks (openpay, paperslk, masariya, geopop).
@@ -36,11 +36,12 @@ same Cloudflare-proxied `:80` pattern the other sites already use.
 | Type | Name | Content | Proxy | Notes |
 | --- | --- | --- | --- | --- |
 | `A` | `attendly-api` | `178.104.111.17` | **Proxied** (orange) | API origin |
-| `CNAME` | `<admin-subdomain>` | `cname.vercel-dns.com` | DNS only (grey) | added/verified by Vercel when you attach the domain |
+| `CNAME` | `attendly` | `cname.vercel-dns.com` | DNS only (grey) | added/verified by Vercel when you attach the domain |
 
-SSL/TLS mode: **match your other sites on this box** (they terminate TLS at
-Cloudflare and talk to the origin on `:80`, i.e. *Flexible* — or *Full* if you
-later add an origin cert). The attendly vhost listens on `:80` only, like the rest.
+SSL/TLS mode (zone `junioremployer.com`): **Flexible** — Cloudflare terminates
+TLS for browsers and talks to the origin over HTTP `:80`, where the attendly
+vhost (and the box's other sites) listen. Do **not** use Full/Full-strict unless
+you first install an origin certificate on `:443` (5xx otherwise).
 
 ## 2. API — one-time VPS setup
 
@@ -57,7 +58,7 @@ cd /opt/attendly && git checkout main
 cp apps/api/.env.example apps/api/.env
 #   JWT_SECRET      = openssl rand -base64 32
 #   ENCRYPTION_KEY  = openssl rand -base64 32
-#   CORS_ORIGINS    = https://<admin-domain>
+#   CORS_ORIGINS    = https://attendly.junioremployer.com
 #   (optional) GOOGLE_*, R2_*  — see the table below
 nano apps/api/.env
 
@@ -125,7 +126,7 @@ health-checks `http://localhost:8787/api/health`.
    - SPA rewrite: all paths → `index.html`
 2. **Environment variable** (Production):
    `VITE_API_BASE_URL = https://attendly-api.junioremployer.com`
-3. **Domain**: add `<admin-domain>` in Vercel → it provisions TLS and gives the
+3. **Domain**: add `attendly.junioremployer.com` in Vercel → it provisions TLS and gives the
    DNS record to add in Cloudflare (CNAME, grey-cloud).
 4. Set the API's `CORS_ORIGINS` to that domain (step 2) and redeploy the API.
 
