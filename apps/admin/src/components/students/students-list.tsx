@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, MoreHorizontal, Printer, Trash2, Eye, Users } from "lucide-react";
+import { Search, MoreHorizontal, IdCard, Trash2, Eye, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { StudentStatus, StudentSummary } from "@tuition/shared";
 
 import { ApiError } from "@/lib/api";
-import { useStudents, useDeleteStudent, openCardPdf } from "@/hooks/use-students";
+import { useStudents, useDeleteStudent } from "@/hooks/use-students";
 import { useUrlSearch, asPage, asString } from "@/lib/url-search";
 import type { StudentsSearch } from "@/router";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { CardDialog } from "@/components/students/card-dialog";
 import { Pager } from "@/components/common/pager";
 import { StudentStatusBadge, CardStatusBadge } from "@/components/students/student-status";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,7 @@ export function StudentsList() {
   const [text, setText] = useState(asString(urlSearch.q));
   const q = useDebounced(text);
   const [deleting, setDeleting] = useState<StudentSummary | null>(null);
+  const [cardStudent, setCardStudent] = useState<StudentSummary | null>(null);
 
   // Push the debounced query into the URL (resetting to page 1) when it changes.
   useEffect(() => {
@@ -183,8 +185,8 @@ export function StudentsList() {
                           <Eye className="size-4" /> View
                         </DropdownMenuItem>
                         <Can perm="card.issue">
-                          <DropdownMenuItem onClick={() => void openCardPdf(s.id)}>
-                            <Printer className="size-4" /> Print card
+                          <DropdownMenuItem onClick={() => setCardStudent(s)}>
+                            <IdCard className="size-4" /> View card
                           </DropdownMenuItem>
                         </Can>
                         <Can perm="student.delete">
@@ -243,6 +245,19 @@ export function StudentsList() {
         destructive
         onConfirm={confirmDelete}
       />
+
+      {cardStudent ? (
+        <CardDialog
+          studentId={cardStudent.id}
+          fullName={cardStudent.full_name}
+          regNo={cardStudent.reg_no}
+          cardStatus={cardStudent.card_status}
+          open
+          onOpenChange={(o) => {
+            if (!o) setCardStudent(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

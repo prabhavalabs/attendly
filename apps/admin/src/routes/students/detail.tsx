@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import {
   Pencil,
-  Printer,
+  IdCard,
   CreditCard,
   MoreHorizontal,
   Plus,
@@ -25,7 +25,6 @@ import {
   useStudentSummary,
   useUploadPhoto,
   useRemovePhoto,
-  openCardPdf,
 } from "@/hooks/use-students";
 import { useInvoices } from "@/hooks/use-billing";
 import { formatDate } from "@/lib/format";
@@ -37,6 +36,7 @@ import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { StudentStatusBadge, CardStatusBadge } from "@/components/students/student-status";
 import { StudentDialog } from "@/components/students/student-dialog";
 import { GuardianDialog } from "@/components/students/guardian-dialog";
+import { CardDialog } from "@/components/students/card-dialog";
 import { ClassChip } from "@/components/classes/band";
 import { StatusBadge } from "@/components/common/status-badge";
 import { AttendanceTab } from "@/components/students/attendance-tab";
@@ -143,6 +143,7 @@ export default function StudentDetailPage() {
   const [guardianRemove, setGuardianRemove] = useState<Guardian | null>(null);
   const [cardAction, setCardAction] = useState<null | "reissue" | "revoke">(null);
   const [payInvoice, setPayInvoice] = useState<Invoice | null>(null);
+  const [cardOpen, setCardOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -211,11 +212,9 @@ export default function StudentDetailPage() {
                 <Pencil className="size-4" /> Edit
               </Button>
             </Can>
-            <Can perm="card.issue">
-              <Button variant="outline" size="sm" onClick={() => void openCardPdf(student.id)}>
-                <Printer className="size-4" /> Print card
-              </Button>
-            </Can>
+            <Button variant="outline" size="sm" onClick={() => setCardOpen(true)}>
+              <IdCard className="size-4" /> View card
+            </Button>
             <Can perm="card.issue">
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -425,6 +424,14 @@ export default function StudentDetailPage() {
       </Tabs>
 
       <StudentDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
+      <CardDialog
+        studentId={student.id}
+        fullName={student.full_name}
+        regNo={student.reg_no}
+        cardStatus={student.card_status}
+        open={cardOpen}
+        onOpenChange={setCardOpen}
+      />
       <PaymentDialog invoice={payInvoice} open={!!payInvoice} onOpenChange={(o) => !o && setPayInvoice(null)} />
       <GuardianDialog studentId={id} open={guardianAdd} onOpenChange={setGuardianAdd} />
       <GuardianDialog
