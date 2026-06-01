@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/skip2/go-qrcode"
 
 	"attendly/api/internal/cryptox"
 	"attendly/api/internal/httpapi"
@@ -108,5 +109,30 @@ func (h *Handlers) cardPDF(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="card-%s.pdf"`, mstr(row, "reg_no")))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(pdf)
+	return nil
+}
+
+// cardQR returns the student's card QR as a PNG (the opaque token stays
+// server-side, exactly as on the printed card). Powers the on-screen card view.
+func (h *Handlers) cardQR(w http.ResponseWriter, r *http.Request) error {
+	row, err := h.getStudent(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		return err
+	}
+	if row == nil {
+		return httpapi.NotFound("not_found")
+	}
+	token := mstr(row, "card_token")
+	if token == "" {
+		return httpapi.NotFound("no_card")
+	}
+	png, err := qrcode.Encode(token, qrcode.Medium, 360)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "private, max-age=60")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(png)
 	return nil
 }

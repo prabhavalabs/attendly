@@ -61,6 +61,7 @@ func (h *Handlers) Mount(r chi.Router) {
 		r.With(auth.RequirePermission("card.issue")).Method(http.MethodPost, "/{id}/card/issue", httpapi.Handler(h.issueCard))
 		r.With(auth.RequirePermission("card.revoke")).Method(http.MethodPost, "/{id}/card/revoke", httpapi.Handler(h.revokeCard))
 		r.With(auth.RequirePermission("card.issue")).Method(http.MethodGet, "/{id}/card.pdf", httpapi.Handler(h.cardPDF))
+		r.With(auth.RequirePermission("card.issue")).Method(http.MethodGet, "/{id}/card-qr.png", httpapi.Handler(h.cardQR))
 
 		r.With(update).Method(http.MethodPost, "/{id}/guardians", httpapi.Handler(h.addGuardian))
 		r.With(update).Method(http.MethodPatch, "/{id}/guardians/{gid}", httpapi.Handler(h.patchGuardian))
