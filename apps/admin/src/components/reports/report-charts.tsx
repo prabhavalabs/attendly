@@ -13,6 +13,7 @@ import type { AttendanceReportRow, RevenueReportRow } from "@tuition/shared";
 
 import { formatLKR } from "@/lib/money";
 import { BAND_VAR } from "@/components/classes/band";
+import { ChartTooltip } from "@/components/common/chart-tooltip";
 
 const AXIS = {
   tick: { fill: "var(--ink-500)", fontSize: 12 },
@@ -53,13 +54,7 @@ export function RevenueChart({ rows }: { rows: RevenueReportRow[] }) {
           />
           <Tooltip
             cursor={{ fill: "var(--muted)" }}
-            formatter={(v) => formatLKR(Math.round(Number(v) * 100))}
-            contentStyle={{
-              borderRadius: 10,
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              fontSize: 12,
-            }}
+            content={<ChartTooltip valueFormatter={(v) => formatLKR(Math.round(v * 100))} />}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="Billed" fill="var(--neutral)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
@@ -92,13 +87,7 @@ export function AttendanceChart({ rows }: { rows: AttendanceReportRow[] }) {
           />
           <Tooltip
             cursor={{ fill: "var(--muted)" }}
-            formatter={(v) => `${Number(v)}%`}
-            contentStyle={{
-              borderRadius: 10,
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              fontSize: 12,
-            }}
+            content={<ChartTooltip valueFormatter={(v) => `${v}%`} />}
           />
           <Bar dataKey="rate" radius={[4, 4, 0, 0]} isAnimationActive={false}>
             {data.map((d, i) => (
