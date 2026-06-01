@@ -9,8 +9,9 @@ export type Crumb = { label: string; to?: string };
 /**
  * The single, canonical page container for every admin route.
  *
- * One width (max-w-[1280px]), one padding rhythm, one header treatment —
- * so list pages and detail pages share the exact same layout. The breadcrumb
+ * Full available width, one padding rhythm, one header treatment — so list
+ * pages and detail pages share the exact same layout and use all the
+ * horizontal space (no empty side margins on wide screens). The breadcrumb
  * + title + actions live here (not duplicated in the app-shell topbar).
  */
 export function Page({
@@ -32,7 +33,7 @@ export function Page({
 }) {
   const hasHeader = Boolean(title || (crumbs && crumbs.length) || actions || description);
   return (
-    <div className={cn("mx-auto w-full max-w-[1280px] px-6 pt-6 pb-16 md:px-8", className)}>
+    <div className={cn("w-full px-6 pt-6 pb-16 md:px-8", className)}>
       {hasHeader ? (
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
