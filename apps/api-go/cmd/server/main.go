@@ -25,6 +25,7 @@ import (
 	"attendly/api/internal/config"
 	"attendly/api/internal/dashboard"
 	"attendly/api/internal/httpapi"
+	"attendly/api/internal/integrations"
 	"attendly/api/internal/lecturers"
 	"attendly/api/internal/notifications"
 	"attendly/api/internal/reports"
@@ -78,6 +79,13 @@ func run() error {
 	authSvc := auth.New(db, cfg.JWTSecret, cfg.SetupToken)
 	authH := auth.NewHandlers(authSvc)
 
+	adminOrigin := "http://localhost:5173"
+	if len(cfg.CORSOrigins) > 0 {
+		adminOrigin = cfg.CORSOrigins[0]
+	}
+	googleSvc := integrations.NewService(db, cfg.EncryptionKey, cfg.GoogleID, cfg.GoogleSecret)
+	integrationsH := integrations.NewHandlers(googleSvc, cfg.JWTSecret, adminOrigin)
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -97,6 +105,7 @@ func run() error {
 	})
 
 	r.Method(http.MethodPost, "/api/setup", httpapi.Handler(authH.SetupHandler))
+	integrationsH.MountPublic(r) // OAuth callback (Google redirects here, no auth)
 	r.Route("/api/auth", func(r chi.Router) {
 		authH.MountPublic(r)
 		r.Group(func(r chi.Router) {
@@ -113,13 +122,14 @@ func run() error {
 		students.New(db, objects).Mount(r)
 		lecturers.New(db).Mount(r)
 		classes.New(db).Mount(r)
-		sessions.New(db, nil).Mount(r)
+		sessions.New(db, googleSvc.SyncSession).Mount(r)
 		checkin.New(db).Mount(r)
 		billing.NewHandlers(db).Mount(r)
 		reports.New(db).Mount(r)
 		notifications.New(db).Mount(r)
 		users.New(db).Mount(r)
 		roles.New(db).Mount(r)
+		integrationsH.MountAuthed(r)
 	})
 
 	srv := &http.Server{
