@@ -1,4 +1,5 @@
 import { CalendarCheck } from "lucide-react";
+import { addDays, format, startOfToday, subDays } from "date-fns";
 
 import { useStudentAttendance } from "@/hooks/use-students";
 import { formatDate } from "@/lib/format";
@@ -27,18 +28,20 @@ const STATUS_TONE: Record<string, StatusTone> = {
   absent: "bad",
 };
 
-function Swatch({ code }: { code: string }) {
+function Swatch({ code, date }: { code: string; date: Date }) {
   const color = CODE_COLOR[code];
+  const status = code ? CODE_LABEL[code] : "No session";
+  const label = `${format(date, "EEE, dd MMM yyyy")} — ${status}`;
   return (
     <div
       className="aspect-square rounded-[5px] border"
-      title={code ? CODE_LABEL[code] : "No session"}
+      title={label}
       style={
         color
           ? { background: color, borderColor: "transparent" }
-          : { background: "var(--bg-sunk)", borderColor: "var(--border)" }
+          : { background: "var(--muted)", borderColor: "var(--border)" }
       }
-      aria-label={code ? CODE_LABEL[code] : "No session"}
+      aria-label={label}
     />
   );
 }
@@ -74,9 +77,13 @@ export function AttendanceTab({ studentId }: { studentId: string }) {
           </div>
         </div>
         <div className="grid grid-cols-7 gap-1.5">
-          {heatmap.map((code, i) => (
-            <Swatch key={i} code={code} />
-          ))}
+          {(() => {
+            // The heatmap is `length` days ending today, oldest first.
+            const firstDay = subDays(startOfToday(), heatmap.length - 1);
+            return heatmap.map((code, i) => (
+              <Swatch key={i} code={code} date={addDays(firstDay, i)} />
+            ));
+          })()}
         </div>
         <p className="text-muted-foreground mt-3 text-xs">
           One cell per day across this student's enrolled classes; the best status that day is shown.
