@@ -6,7 +6,10 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
+import type { StudentStatus } from "@tuition/shared";
+
 import { useAuthStore, checkPermission } from "@/lib/auth-store";
+import { asPage, asString } from "@/lib/url-search";
 import { AppShell } from "@/components/layout/app-shell";
 import { Placeholder } from "@/routes/placeholder";
 import LoginPage from "@/routes/login";
@@ -70,10 +73,21 @@ const usersRoute = createRoute({
   component: UsersPage,
 });
 
+const STUDENT_STATUSES: StudentStatus[] = ["active", "inactive", "graduated", "withdrawn"];
+
+export type StudentsSearch = { page: number; q?: string; status?: StudentStatus };
+
 const studentsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/students",
   beforeLoad: guard("student.read"),
+  validateSearch: (s: Record<string, unknown>): StudentsSearch => {
+    const status = STUDENT_STATUSES.includes(s.status as StudentStatus)
+      ? (s.status as StudentStatus)
+      : undefined;
+    const q = asString(s.q);
+    return { page: asPage(s.page), q: q || undefined, status };
+  },
   component: StudentsPage,
 });
 
