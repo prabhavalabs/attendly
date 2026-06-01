@@ -1,14 +1,24 @@
 import { useState } from "react";
-import { Link, useParams, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, Pencil, Trash2, Plus, MoreHorizontal, Users } from "lucide-react";
+import { useParams, useNavigate } from "@tanstack/react-router";
+import { Pencil, Trash2, Plus, MoreHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Enrollment } from "@tuition/shared";
 
-import { useClass, useEnrollments, useUnenroll, useDeleteClass } from "@/hooks/use-classes";
+import {
+  useClass,
+  useEnrollments,
+  useEnrolledStudentIds,
+  useUnenroll,
+  useDeleteClass,
+} from "@/hooks/use-classes";
+import { useUrlSearch, asPage } from "@/lib/url-search";
+import type { ClassDetailSearch } from "@/router";
 import { formatLKR } from "@/lib/money";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Pager } from "@/components/common/pager";
 import { BAND_VAR, ClassChip } from "@/components/classes/band";
 import { ClassDialog } from "@/components/classes/class-dialog";
 import { EnrollmentFeeDialog } from "@/components/classes/enrollment-fee-dialog";
@@ -27,8 +37,13 @@ import {
 export default function ClassDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
   const navigate = useNavigate();
+  const { search, setSearch } = useUrlSearch<ClassDetailSearch>();
+  const tab = search.tab ?? "enrollments";
+  const page = asPage(search.page);
+  const ENROLL_PAGE_SIZE = 15;
   const { data: cls, isLoading, isError } = useClass(id);
-  const { data: enrollments } = useEnrollments(id);
+  const { data: enrollData } = useEnrollments(id, page, ENROLL_PAGE_SIZE);
+  const { data: enrolledIds } = useEnrolledStudentIds(id);
   const unenroll = useUnenroll(id);
   const deleteClass = useDeleteClass();
 
@@ -40,31 +55,23 @@ export default function ClassDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8">
-        <Skeleton className="mb-4 h-4 w-20" />
+      <Page crumbs={[{ label: "Classes", to: "/classes" }, { label: "…" }]}>
         <Skeleton className="h-32 w-full rounded-2xl" />
-      </div>
+      </Page>
     );
   }
   if (isError || !cls) {
     return (
-      <div className="p-6 md:p-8">
-        <Link to="/classes" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
-          <ChevronLeft className="size-4" /> Classes
-        </Link>
+      <Page crumbs={[{ label: "Classes", to: "/classes" }, { label: "Not found" }]}>
         <div className="text-muted-foreground mt-10 text-center text-sm">Class not found.</div>
-      </div>
+      </Page>
     );
   }
 
-  const enrolledIds = new Set((enrollments ?? []).map((e) => e.student.id));
+  const enrollments = enrollData?.enrollments ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl p-6 md:p-8">
-      <Link to="/classes" className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm">
-        <ChevronLeft className="size-4" /> Classes
-      </Link>
-
+    <Page crumbs={[{ label: "Classes", to: "/classes" }, { label: cls.name }]}>
       <div className="bg-card relative mb-5 overflow-hidden rounded-2xl border p-6" style={{ boxShadow: "var(--sh-card)" }}>
         <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: BAND_VAR[cls.band] }} aria-hidden />
         <div className="flex flex-wrap items-start justify-between gap-4 pl-2">
@@ -109,7 +116,12 @@ export default function ClassDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="enrollments">
+      <Tabs
+        value={tab}
+        onValueChange={(v) =>
+          setSearch({ tab: v === "timetable" ? "timetable" : undefined, page: 1 })
+        }
+      >
         <TabsList>
           <TabsTrigger value="enrollments">Enrollments ({cls.enrolled_count})</TabsTrigger>
           <TabsTrigger value="timetable">Timetable ({cls.timetable.length})</TabsTrigger>
@@ -123,14 +135,14 @@ export default function ClassDetailPage() {
               </Button>
             </Can>
           </div>
-          {(enrollments ?? []).length === 0 ? (
+          {enrollments.length === 0 ? (
             <div className="bg-card text-muted-foreground rounded-2xl border py-12 text-center text-sm" style={{ boxShadow: "var(--sh-flat)" }}>
               No students enrolled yet.
             </div>
           ) : (
             <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
               <ul className="divide-y">
-                {(enrollments ?? []).map((e) => (
+                {enrollments.map((e) => (
                   <li key={e.id} className="flex items-center gap-3 px-5 py-3">
                     <UserAvatar name={e.student.full_name} seed={e.student.id} photoUrl={e.student.photo_url} size={34} />
                     <button
@@ -158,6 +170,15 @@ export default function ClassDetailPage() {
               </ul>
             </div>
           )}
+          {enrollData ? (
+            <Pager
+              page={page}
+              pageSize={ENROLL_PAGE_SIZE}
+              total={enrollData.total}
+              noun="student"
+              onPageChange={(p) => setSearch({ page: p })}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="timetable" className="mt-5">
@@ -167,7 +188,7 @@ export default function ClassDetailPage() {
 
       <ClassDialog open={editOpen} onOpenChange={setEditOpen} cls={cls} />
       <EnrollmentFeeDialog classId={id} enrollment={editFee} open={!!editFee} onOpenChange={(o) => !o && setEditFee(null)} />
-      <EnrollDialog classId={id} enrolledIds={enrolledIds} open={enrollOpen} onOpenChange={setEnrollOpen} />
+      <EnrollDialog classId={id} enrolledIds={enrolledIds ?? new Set()} open={enrollOpen} onOpenChange={setEnrollOpen} />
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}
@@ -194,6 +215,6 @@ export default function ClassDetailPage() {
           void navigate({ to: "/classes" });
         }}
       />
-    </div>
+    </Page>
   );
 }

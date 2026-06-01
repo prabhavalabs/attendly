@@ -1,0 +1,20 @@
+# Dev override: run the backend with Go live-reload (air) in Docker.
+# The source is bind-mounted, so editing apps/api/**.go rebuilds + restarts
+# the server in-container — no manual `docker compose up --build`.
+#
+#   make docker-dev      (or: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build)
+services:
+  backend:
+    image: attendly-backend:dev # distinct tag so dev/prod images never clobber each other
+    build:
+      target: dev
+    volumes:
+      - ./apps/api:/src # live source
+      - go-build-cache:/root/.cache/go-build
+      - go-mod-cache:/go/pkg/mod
+      - attendly-data:/data # same SQLite volume as prod
+    restart: "no"
+
+volumes:
+  go-build-cache:
+  go-mod-cache:

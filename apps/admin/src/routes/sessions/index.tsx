@@ -4,27 +4,33 @@ import { CalendarPlus, CalendarCheck } from "lucide-react";
 
 import { useClasses } from "@/hooks/use-classes";
 import { useSessions } from "@/hooks/use-sessions";
+import { useUrlSearch, asPage } from "@/lib/url-search";
+import type { SessionsSearch } from "@/router";
 import { formatDate } from "@/lib/format";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { ClassChip } from "@/components/classes/band";
 import { SessionStatusBadge } from "@/components/sessions/session-status";
 import { GenerateDialog } from "@/components/sessions/generate-dialog";
+import { Pager } from "@/components/common/pager";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ALL = "__all__";
+const PAGE_SIZE = 15;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 export default function SessionsPage() {
   const navigate = useNavigate();
+  const { search, setSearch } = useUrlSearch<SessionsSearch>();
   const today = useMemo(() => new Date(), []);
-  const [from, setFrom] = useState(iso(today));
-  const [to, setTo] = useState(iso(new Date(today.getTime() + 30 * 86_400_000)));
-  const [classId, setClassId] = useState(ALL);
+  const from = search.from ?? iso(today);
+  const to = search.to ?? iso(new Date(today.getTime() + 30 * 86_400_000));
+  const classId = search.class_id ?? ALL;
+  const page = asPage(search.page);
   const [genOpen, setGenOpen] = useState(false);
 
   const { data: classes } = useClasses();
@@ -32,48 +38,52 @@ export default function SessionsPage() {
     { value: ALL, label: "All classes" },
     ...(classes ?? []).map((c) => ({ value: c.id, label: c.name })),
   ];
-  const { data: sessions, isLoading } = useSessions({
+  const { data, isLoading } = useSessions({
     from,
     to,
     class_id: classId === ALL ? undefined : classId,
+    page,
+    page_size: PAGE_SIZE,
   });
 
   const grouped = useMemo(() => {
-    const map = new Map<string, NonNullable<typeof sessions>>();
-    for (const s of sessions ?? []) {
+    const map = new Map<string, NonNullable<typeof data>["sessions"]>();
+    for (const s of data?.sessions ?? []) {
       const list = map.get(s.session_date) ?? [];
       list.push(s);
       map.set(s.session_date, list);
     }
     return [...map.entries()];
-  }, [sessions]);
+  }, [data]);
 
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader
-        title="Sessions"
-        description="Generate sessions from the timetable and open rosters for check-in."
-        actions={
-          <Can perm="session.manage">
-            <Button onClick={() => setGenOpen(true)}>
-              <CalendarPlus className="size-4" /> Generate
-            </Button>
-          </Can>
-        }
-      />
-
+    <Page
+      title="Sessions"
+      description="Generate sessions from the timetable and open rosters for check-in."
+      actions={
+        <Can perm="session.manage">
+          <Button onClick={() => setGenOpen(true)}>
+            <CalendarPlus className="size-4" /> Generate
+          </Button>
+        </Can>
+      }
+    >
       <div className="bg-card mb-5 flex flex-wrap items-end gap-3 rounded-2xl border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
         <div className="grid gap-1.5">
           <Label className="text-xs">From</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+          <DatePicker value={from} onChange={(v) => setSearch({ from: v, page: 1 })} aria-label="From date" className="w-40" />
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">To</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+          <DatePicker value={to} onChange={(v) => setSearch({ to: v, page: 1 })} aria-label="To date" className="w-40" />
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">Class</Label>
-          <Select value={classId} onValueChange={(v) => setClassId(v ?? ALL)} items={classItems}>
+          <Select
+            value={classId}
+            onValueChange={(v) => setSearch({ class_id: !v || v === ALL ? undefined : v, page: 1 })}
+            items={classItems}
+          >
             <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
             <SelectContent>
               {classItems.map((it) => (
@@ -133,7 +143,17 @@ export default function SessionsPage() {
         </div>
       )}
 
+      {!isLoading ? (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={data?.total ?? 0}
+          noun="session"
+          onPageChange={(p) => setSearch({ page: p })}
+        />
+      ) : null}
+
       <GenerateDialog open={genOpen} onOpenChange={setGenOpen} defaultFrom={from} defaultTo={to} />
-    </div>
+    </Page>
   );
 }

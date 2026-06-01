@@ -1,15 +1,14 @@
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { UsersTab } from "@/components/users/users-tab";
 import { RolesTab } from "@/components/roles/roles-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function UsersPage() {
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader
-        title="Users & Roles"
-        description="Manage staff accounts and the role-based permissions that govern the portal."
-      />
+    <Page
+      title="Users & Roles"
+      description="Manage staff accounts and the role-based permissions that govern the portal."
+    >
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -22,6 +21,6 @@ export default function UsersPage() {
           <RolesTab />
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   );
 }

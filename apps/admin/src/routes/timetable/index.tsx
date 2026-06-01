@@ -3,7 +3,7 @@ import { WEEKDAYS, type Class, type TimetableSlot } from "@tuition/shared";
 
 import { api } from "@/lib/api";
 import { useClasses } from "@/hooks/use-classes";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { BAND_VAR } from "@/components/classes/band";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -48,9 +48,7 @@ export default function TimetablePage() {
   const anySlots = byDay.some((l) => l.length > 0);
 
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader title="Timetable" description="The weekly schedule across all active classes." />
-
+    <Page title="Timetable" description="The weekly schedule across all active classes.">
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
@@ -86,6 +84,6 @@ export default function TimetablePage() {
           No timetable slots yet. Add weekly slots from a class's Timetable tab.
         </p>
       ) : null}
-    </div>
+    </Page>
   );
 }

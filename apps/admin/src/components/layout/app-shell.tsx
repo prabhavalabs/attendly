@@ -46,7 +46,7 @@ export function AppShell() {
         <header className="bg-card flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-1 h-6" />
-          <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+          <span className="text-muted-foreground text-sm font-medium md:hidden">{title}</span>
 
           <div className="ml-auto flex items-center gap-2.5">
             <button

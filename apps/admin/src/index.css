@@ -218,6 +218,17 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
+  /* Interactive elements get a pointer cursor (Tailwind's preflight leaves
+     native buttons at the default arrow). Disabled controls keep the default. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {

@@ -1,11 +1,12 @@
 import { Settings } from "lucide-react";
 
+import { Page } from "@/components/layout/page";
 import { Badge } from "@/components/ui/badge";
 
 /** Generic "coming soon" page for nav modules not yet built. */
 export function Placeholder({ name }: { name: string }) {
   return (
-    <div className="p-6 md:p-8">
+    <Page>
       <div
         className="bg-card mx-auto mt-10 max-w-xl rounded-2xl border p-12 text-center"
         style={{ boxShadow: "var(--sh-flat)" }}
@@ -32,6 +33,6 @@ export function Placeholder({ name }: { name: string }) {
           )}
         </div>
       </div>
-    </div>
+    </Page>
   );
 }

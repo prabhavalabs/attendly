@@ -1,0 +1,10 @@
+.env
+data/
+bin/
+attendly-api
+*.db
+*.db-shm
+*.db-wal
+README.md
+tmp/
+.air.toml

@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, MoreHorizontal, Printer, Trash2, Eye, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, MoreHorizontal, Printer, Trash2, Eye, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { StudentStatus, StudentSummary } from "@tuition/shared";
 
 import { ApiError } from "@/lib/api";
 import { useStudents, useDeleteStudent, openCardPdf } from "@/hooks/use-students";
+import { useUrlSearch, asPage, asString } from "@/lib/url-search";
+import type { StudentsSearch } from "@/router";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Pager } from "@/components/common/pager";
 import { StudentStatusBadge, CardStatusBadge } from "@/components/students/student-status";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 15;
 
 const FILTERS: { label: string; value?: StudentStatus }[] = [
   { label: "All" },
@@ -50,19 +53,23 @@ function useDebounced<T>(value: T, ms = 250): T {
 
 export function StudentsList() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<StudentStatus | undefined>(undefined);
-  const [page, setPage] = useState(1);
-  const [deleting, setDeleting] = useState<StudentSummary | null>(null);
-  const q = useDebounced(search);
+  const { search: urlSearch, setSearch } = useUrlSearch<StudentsSearch>();
+  const page = asPage(urlSearch.page);
+  const status = urlSearch.status;
 
-  // Reset to page 1 whenever the filters change.
-  useEffect(() => setPage(1), [q, status]);
+  // Local input state for snappy typing; the debounced value drives the URL.
+  const [text, setText] = useState(asString(urlSearch.q));
+  const q = useDebounced(text);
+  const [deleting, setDeleting] = useState<StudentSummary | null>(null);
+
+  // Push the debounced query into the URL (resetting to page 1) when it changes.
+  useEffect(() => {
+    if (q !== asString(urlSearch.q)) setSearch({ q: q || undefined, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   const { data, isLoading, isError } = useStudents({ q, status, page, page_size: PAGE_SIZE });
   const deleteStudent = useDeleteStudent();
-
-  const totalPages = useMemo(() => (data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1), [data]);
 
   function open(id: string) {
     void navigate({ to: "/students/$id", params: { id } });
@@ -88,8 +95,8 @@ export function StudentsList() {
         <div className="relative min-w-[260px] flex-1">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             placeholder="Search by name, reg no, or phone…"
             className="h-10 pl-9"
             aria-label="Search students"
@@ -105,7 +112,7 @@ export function StudentsList() {
                 size="sm"
                 variant={active ? "default" : "outline"}
                 className="rounded-full"
-                onClick={() => setStatus(f.value)}
+                onClick={() => setSearch({ status: f.value, page: 1 })}
               >
                 {f.label}
               </Button>
@@ -217,23 +224,14 @@ export function StudentsList() {
         </Table>
       </div>
 
-      {data && data.total > 0 ? (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-muted-foreground text-sm">
-            {data.total} {data.total === 1 ? "student" : "students"}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              <ChevronLeft className="size-4" /> Prev
-            </Button>
-            <span className="text-muted-foreground tnum text-sm">
-              Page {page} of {totalPages}
-            </span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-              Next <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </div>
+      {data ? (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={data.total}
+          noun="student"
+          onPageChange={(p) => setSearch({ page: p })}
+        />
       ) : null}
 
       <ConfirmDialog

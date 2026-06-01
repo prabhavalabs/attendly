@@ -1,0 +1,13 @@
+# Local data (SQLite db + generated assets) and secrets — never commit.
+/data/
+*.db
+*.db-shm
+*.db-wal
+.env
+
+# Build output
+/bin/
+attendly-api
+
+# air live-reload temp
+tmp/
