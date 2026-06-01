@@ -52,7 +52,7 @@ export function RevenueChart({ rows }: { rows: RevenueReportRow[] }) {
             tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
           />
           <Tooltip
-            cursor={{ fill: "var(--bg-sunk)" }}
+            cursor={{ fill: "var(--muted)" }}
             formatter={(v) => formatLKR(Math.round(Number(v) * 100))}
             contentStyle={{
               borderRadius: 10,
@@ -91,7 +91,7 @@ export function AttendanceChart({ rows }: { rows: AttendanceReportRow[] }) {
             tickFormatter={(v: number) => `${v}%`}
           />
           <Tooltip
-            cursor={{ fill: "var(--bg-sunk)" }}
+            cursor={{ fill: "var(--muted)" }}
             formatter={(v) => `${Number(v)}%`}
             contentStyle={{
               borderRadius: 10,
