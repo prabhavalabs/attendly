@@ -8,10 +8,10 @@ const AllPermissions = "*"
 
 // Permission is one concrete capability in resource.action form.
 type Permission struct {
-	Key      string
-	Resource string
-	Action   string
-	Label    string
+	Key      string `json:"key"`
+	Resource string `json:"resource"`
+	Action   string `json:"action"`
+	Label    string `json:"label"`
 }
 
 // Role is a default system role and the permission keys it grants.

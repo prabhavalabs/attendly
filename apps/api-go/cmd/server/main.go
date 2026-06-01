@@ -26,11 +26,15 @@ import (
 	"attendly/api/internal/dashboard"
 	"attendly/api/internal/httpapi"
 	"attendly/api/internal/lecturers"
+	"attendly/api/internal/notifications"
+	"attendly/api/internal/reports"
+	"attendly/api/internal/roles"
 	"attendly/api/internal/sessions"
 	"attendly/api/internal/settings"
 	"attendly/api/internal/storage"
 	"attendly/api/internal/store"
 	"attendly/api/internal/students"
+	"attendly/api/internal/users"
 	"attendly/api/migrations"
 )
 
@@ -112,6 +116,10 @@ func run() error {
 		sessions.New(db, nil).Mount(r)
 		checkin.New(db).Mount(r)
 		billing.NewHandlers(db).Mount(r)
+		reports.New(db).Mount(r)
+		notifications.New(db).Mount(r)
+		users.New(db).Mount(r)
+		roles.New(db).Mount(r)
 	})
 
 	srv := &http.Server{
