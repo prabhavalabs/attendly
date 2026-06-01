@@ -1,5 +1,5 @@
-// Package pdfgen renders the printable PDFs (ID cards, receipts) as pure Go, so
-// no external service or browser is required.
+// Package pdfgen renders the printable PDFs (ID cards, receipts, invoices) as
+// pure Go, so no external service or browser is required.
 package pdfgen
 
 import (
@@ -20,60 +20,78 @@ type CardData struct {
 	Active    bool
 }
 
-// Card renders a credit-card-sized PDF with a QR encoding the opaque card token.
+// Card renders a credit-card-sized (85.6×54mm) branded ID card with a QR
+// encoding the opaque card token.
 func Card(d CardData) ([]byte, error) {
 	qr, err := qrcode.Encode(d.CardToken, qrcode.Medium, 256)
 	if err != nil {
 		return nil, fmt.Errorf("encode qr: %w", err)
 	}
 
-	pdf := fpdf.NewCustom(&fpdf.InitType{
-		UnitStr: "mm",
-		Size:    fpdf.SizeType{Wd: 85.6, Ht: 54},
-	})
-	pdf.SetMargins(6, 6, 6)
+	const W, H = 85.6, 54.0
+	pdf := fpdf.NewCustom(&fpdf.InitType{UnitStr: "mm", Size: fpdf.SizeType{Wd: W, Ht: H}})
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
 
+	// Teal card background.
+	fill(pdf, colTeal)
+	pdf.Rect(0, 0, W, H, "F")
+
+	// Header: logo + org name + "STUDENT ID CARD".
+	pdf.ImageOptions(logoName(pdf), 6, 5, 9, 9, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
+	text(pdf, colWhite)
 	pdf.SetFont("Helvetica", "B", 11)
-	pdf.SetTextColor(15, 23, 42)
-	pdf.CellFormat(0, 6, tr(pdf, d.OrgName), "", 1, "L", false, 0, "")
+	pdf.SetXY(17.5, 5.0)
+	pdf.CellFormat(62, 6, tr(pdf, d.OrgName), "", 0, "L", false, 0, "")
+	text(pdf, tint(colTeal, 0.7))
+	pdf.SetFont("Helvetica", "B", 6.5)
+	pdf.SetXY(17.5, 11)
+	pdf.CellFormat(62, 4, "STUDENT ID CARD", "", 0, "L", false, 0, "")
 
-	pdf.Ln(3)
-	pdf.SetFont("Helvetica", "B", 13)
-	pdf.CellFormat(48, 7, tr(pdf, d.FullName), "", 1, "L", false, 0, "")
+	// White content panel (echoes the card motif).
+	fill(pdf, colWhite)
+	pdf.RoundedRect(5, 17.5, 75.6, 31, 3.5, "1234", "F")
+
+	// Name + amber accent + reg + class.
+	text(pdf, colInk)
+	pdf.SetFont("Helvetica", "B", 12.5)
+	pdf.SetXY(9, 21.5)
+	pdf.CellFormat(48, 6, tr(pdf, d.FullName), "", 0, "L", false, 0, "")
+	fill(pdf, colAmber)
+	pdf.Rect(9, 30, 16, 0.8, "F")
+	text(pdf, colMuted)
 	pdf.SetFont("Helvetica", "", 9)
-	pdf.SetTextColor(100, 116, 139)
-	pdf.CellFormat(48, 5, tr(pdf, d.RegNo), "", 1, "L", false, 0, "")
+	pdf.SetXY(9, 31.5)
+	pdf.CellFormat(48, 5, tr(pdf, d.RegNo), "", 0, "L", false, 0, "")
 	if d.Subtitle != "" {
-		pdf.CellFormat(48, 5, tr(pdf, d.Subtitle), "", 1, "L", false, 0, "")
+		pdf.SetXY(9, 36)
+		pdf.CellFormat(48, 5, tr(pdf, d.Subtitle), "", 0, "L", false, 0, "")
 	}
 
-	status := "ACTIVE"
-	if !d.Active {
-		status = "INACTIVE"
-	}
-	pdf.SetY(44)
-	pdf.SetFont("Helvetica", "B", 8)
+	// Status pill.
 	if d.Active {
-		pdf.SetTextColor(22, 163, 74)
+		pill(pdf, 9, 42, "ACTIVE", colOk)
 	} else {
-		pdf.SetTextColor(220, 38, 38)
+		pill(pdf, 9, 42, "INACTIVE", colBad)
 	}
-	pdf.CellFormat(48, 5, status, "", 0, "L", false, 0, "")
 
-	// QR bottom-right. fpdf accumulates errors internally (surfaced at Output).
+	// QR bottom-right inside the panel + caption.
 	pdf.RegisterImageOptionsReader("qr", fpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(qr))
-	pdf.ImageOptions("qr", 60, 19, 22, 22, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
+	pdf.ImageOptions("qr", 61, 20.5, 17.5, 17.5, false, fpdf.ImageOptions{ImageType: "PNG"}, 0, "")
+	text(pdf, colMuted)
+	pdf.SetFont("Helvetica", "", 5.5)
+	pdf.SetXY(59.5, 38.3)
+	pdf.CellFormat(20, 3, "Scan to check in", "", 0, "C", false, 0, "")
+
+	// Footer wordmark on the teal.
+	text(pdf, tint(colTeal, 0.75))
+	pdf.SetFont("Helvetica", "B", 7)
+	pdf.SetXY(6, 49.8)
+	pdf.CellFormat(40, 4, "attendly", "", 0, "L", false, 0, "")
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
 		return nil, fmt.Errorf("render pdf: %w", err)
 	}
 	return buf.Bytes(), nil
-}
-
-// tr transliterates UTF-8 to the font's encoding (cp1252) to avoid mojibake.
-func tr(pdf *fpdf.Fpdf, s string) string {
-	return pdf.UnicodeTranslatorFromDescriptor("")(s)
 }

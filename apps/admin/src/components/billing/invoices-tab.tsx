@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { MoreHorizontal, Plus, Receipt, CreditCard, Ban } from "lucide-react";
+import { MoreHorizontal, Plus, Receipt, CreditCard, Ban, FileText } from "lucide-react";
 import type { Invoice } from "@tuition/shared";
 
-import { useInvoices } from "@/hooks/use-billing";
+import { useInvoices, openInvoicePdf } from "@/hooks/use-billing";
 import { useClasses } from "@/hooks/use-classes";
 import { useUrlSearch, asPage, asString } from "@/lib/url-search";
 import type { BillingSearch } from "@/router";
@@ -139,19 +139,22 @@ export function InvoicesTab() {
                     <TableCell className="tnum font-semibold">{closed || inv.outstanding_minor <= 0 ? "—" : formatLKR(inv.outstanding_minor)}</TableCell>
                     <TableCell><InvoiceStatusBadge status={inv.status} /></TableCell>
                     <TableCell>
-                      {!closed ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Actions"><MoreHorizontal className="size-4" /></Button>} />
-                          <DropdownMenuContent align="end">
-                            <Can perm="payment.record">
-                              <DropdownMenuItem onClick={() => setPaying(inv)}><CreditCard className="size-4" /> Record payment</DropdownMenuItem>
-                            </Can>
-                            <Can perm="invoice.manage">
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setWaiving(inv)}><Ban className="size-4" /> Waive</DropdownMenuItem>
-                            </Can>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : null}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Actions"><MoreHorizontal className="size-4" /></Button>} />
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => void openInvoicePdf(inv.id)}><FileText className="size-4" /> Download invoice</DropdownMenuItem>
+                          {!closed ? (
+                            <>
+                              <Can perm="payment.record">
+                                <DropdownMenuItem onClick={() => setPaying(inv)}><CreditCard className="size-4" /> Record payment</DropdownMenuItem>
+                              </Can>
+                              <Can perm="invoice.manage">
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setWaiving(inv)}><Ban className="size-4" /> Waive</DropdownMenuItem>
+                              </Can>
+                            </>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );

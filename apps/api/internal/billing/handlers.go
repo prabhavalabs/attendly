@@ -38,6 +38,7 @@ func (h *Handlers) Mount(r chi.Router) {
 		manage := auth.RequirePermission("invoice.manage")
 		r.With(manage).Method(http.MethodPost, "/generate", httpapi.Handler(h.generate))
 		r.With(manage).Method(http.MethodPatch, "/{id}", httpapi.Handler(h.patchInvoice))
+		r.With(auth.RequirePermission("invoice.read")).Method(http.MethodGet, "/{id}/invoice.pdf", httpapi.Handler(h.invoicePDF))
 	})
 	r.Route("/api/payments", func(r chi.Router) {
 		r.With(auth.RequirePermission("payment.read")).Method(http.MethodGet, "/", httpapi.Handler(h.listPayments))
@@ -307,6 +308,71 @@ func (h *Handlers) receipt(w http.ResponseWriter, r *http.Request) error {
 	}
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="receipt-%s.pdf"`, str("receipt_no")))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(pdf)
+	return nil
+}
+
+func (h *Handlers) invoicePDF(w http.ResponseWriter, r *http.Request) error {
+	row, err := store.QueryFirstMap(r.Context(), h.db,
+		`SELECT i.id, i.period, i.amount_minor, i.due_date, i.status, i.created_at,
+		        s.full_name, s.reg_no, c.name AS class_name,
+		        COALESCE((SELECT SUM(amount_minor) FROM payments p WHERE p.invoice_id = i.id), 0) AS paid_minor
+		   FROM invoices i
+		   JOIN students s ON s.id = i.student_id
+		   JOIN classes c ON c.id = i.class_id
+		  WHERE i.id = ?`, chi.URLParam(r, "id"))
+	if err != nil {
+		return err
+	}
+	if row == nil {
+		return httpapi.NotFound("not_found")
+	}
+	org := "attendly"
+	if err := h.db.QueryRowContext(r.Context(), `SELECT value FROM settings WHERE key = 'org_name'`).Scan(&org); err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	str := func(k string) string {
+		if v, ok := row[k].(string); ok {
+			return v
+		}
+		return ""
+	}
+	money := func(minor int64) string { return fmt.Sprintf("%.2f", float64(minor)/100) }
+	amount := toI64(row["amount_minor"])
+	paid := toI64(row["paid_minor"])
+	outstanding := amount - paid
+	if outstanding < 0 {
+		outstanding = 0
+	}
+	period := str("period")
+	suffix := strings.ToUpper(strings.TrimPrefix(str("id"), "inv_"))
+	if len(suffix) > 6 {
+		suffix = suffix[:6]
+	}
+	issued := str("created_at")
+	if len(issued) >= 10 {
+		issued = issued[:10]
+	}
+	pdf, err := pdfgen.Invoice(pdfgen.InvoiceData{
+		OrgName:         org,
+		InvoiceNo:       fmt.Sprintf("INV-%s-%s", strings.ReplaceAll(period, "-", ""), suffix),
+		IssuedAt:        issued,
+		DueDate:         str("due_date"),
+		StudentName:     str("full_name"),
+		RegNo:           str("reg_no"),
+		ClassName:       str("class_name"),
+		Period:          period,
+		Status:          str("status"),
+		AmountText:      money(amount),
+		PaidText:        money(paid),
+		OutstandingText: money(outstanding),
+	})
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="invoice-%s-%s.pdf"`, str("reg_no"), period))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(pdf)
 	return nil
