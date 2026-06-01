@@ -1,5 +1,5 @@
 # Local/VPS infrastructure for the attendly Go backend.
-# `make up` builds and starts this; data persists in the named volume.
+# `make docker-up` builds and starts this; data persists in the named volume.
 services:
   backend:
     build:
@@ -7,7 +7,7 @@ services:
     image: attendly-backend:local
     container_name: attendly-backend
     env_file:
-      - ./apps/api-go/.env
+      - ./apps/api/.env
     environment:
       ADDR: ":8787"
       DB_PATH: /data/attendly.db

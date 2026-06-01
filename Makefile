@@ -81,7 +81,7 @@ test-go: ## Run Go tests with the race detector
 build: build-go ## Build the Go binary + the admin portal
 	$(PNPM) --filter @tuition/admin build
 
-build-go: ## Build the static Go server binary into apps/api-go/bin
+build-go: ## Build the static Go server binary into apps/api/bin
 	cd $(API_DIR) && CGO_ENABLED=0 $(GO) build -trimpath -ldflags="-s -w" -o bin/attendly-api ./cmd/server
 
 fmt: ## gofmt the Go code
