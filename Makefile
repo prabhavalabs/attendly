@@ -122,6 +122,9 @@ seed: ## Seed the first owner via /api/setup (backend must be running)
 		&& echo "" && echo "Owner seeded: $(OWNER_EMAIL)" \
 		|| { echo ""; echo "If 403: an owner already exists — just log in."; exit 1; }
 
+seed-demo: ## Seed a realistic demo dataset (~100 students, classes, attendance, billing)
+	@OWNER_EMAIL=$(OWNER_EMAIL) OWNER_PASSWORD=$(OWNER_PASSWORD) API_BASE=$(API_URL) node scripts/seed-demo.mjs
+
 health: ## Ping the backend health endpoint
 	@curl -fsS $(API_URL)/api/health && echo ""
 
