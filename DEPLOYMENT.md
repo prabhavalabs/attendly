@@ -1,115 +1,152 @@
 # Deployment
 
-attendly is **self-hosted** on a VPS:
+attendly runs as two independently-deployed pieces, both triggered by a merge
+to **`main`**:
 
-- **API** — a Go backend (`apps/api`) with an **embedded SQLite** database, run
-  as a Docker container. Uploads/PDFs use **Cloudflare R2** (S3-compatible) when
-  configured, else local disk.
-- **Admin portal** — a static **Vite** SPA (`apps/admin`), served by your
-  reverse proxy (Caddy/nginx) or any static host.
-- **Mobile** — the Expo app ships via EAS / app stores (and a PWA).
-
-CI/CD lives in [`.github/workflows`](.github/workflows):
-
-| Workflow | Trigger | What it does |
+| Piece | Hosting | How it deploys on merge to `main` |
 | --- | --- | --- |
-| `ci.yml` | PRs + pushes to `develop`/`main` | Go backend `vet` + `test -race` + build; admin typecheck + build |
-| `deploy.yml` | push to `main` (merged PR) | SSH to the VPS, pull `main`, `docker compose up -d --build`, health check |
+| **API** (`apps/api`, Go + embedded SQLite, Docker) | self-hosted VPS behind host **nginx** + **Cloudflare** | `deploy.yml` SSHes in, `git reset --hard origin/main`, `docker compose up -d --build`, health-checks `:8787` |
+| **Admin portal** (`apps/admin`, Vite SPA) | **Vercel** (Git integration) | Vercel auto-builds & deploys the production domain |
+| **Mobile** (`apps/mobile`, Expo) | EAS / app stores + PWA | manual `eas build` / store submit |
 
-## Local development
+CI (`ci.yml`) runs on every PR and push to `develop`/`main`: Go `vet` +
+`test -race` + build, and admin typecheck + build.
 
-```bash
-make up        # install deps, create apps/api/.env (with generated dev secrets)
-make backend   # Go API on :8787 (live logs)   — terminal 1
-make admin     # admin portal on :5173          — terminal 2
-make seed      # create the owner via /api/setup
-make test      # go test -race + admin typecheck
+## Production topology
+
+```
+                       ┌── Cloudflare (TLS, proxied) ──┐
+ attendly-api.junioremployer.com  ─────────────────────▶  VPS 178.104.111.17
+                                                            host nginx :80
+                                                              └─▶ 127.0.0.1:8787  (attendly-backend container)
+                                                                    └─▶ /data volume (SQLite + uploads)
+
+ attendly.junioremployer.com (Vercel)  ──fetch──▶  https://attendly-api.junioremployer.com
 ```
 
-SQLite needs no server — the DB is a file (`apps/api/data/attendly.db`). There
-is no separate "infrastructure" to start locally.
+The VPS is **shared** with other stacks (openpay, paperslk, masariya, geopop).
+attendly slots in cleanly: the container binds **`127.0.0.1:8787`** (free, not
+internet-exposed) and a dedicated nginx vhost routes the hostname to it — the
+same Cloudflare-proxied `:80` pattern the other sites already use.
 
-## Server configuration (`apps/api/.env`)
+---
+
+## 1. DNS (Cloudflare)
+
+| Type | Name | Content | Proxy | Notes |
+| --- | --- | --- | --- | --- |
+| `A` | `attendly-api` | `178.104.111.17` | **Proxied** (orange) | API origin |
+| `CNAME` | `attendly` | `cname.vercel-dns.com` | DNS only (grey) | added/verified by Vercel when you attach the domain |
+
+SSL/TLS mode (zone `junioremployer.com`): **Flexible** — Cloudflare terminates
+TLS for browsers and talks to the origin over HTTP `:80`, where the attendly
+vhost (and the box's other sites) listen. Do **not** use Full/Full-strict unless
+you first install an origin certificate on `:443` (5xx otherwise).
+
+## 2. API — one-time VPS setup
+
+All commands run as a user that can use Docker (root works; a dedicated
+`attendly` deploy user in the `docker` group is recommended).
+
+```bash
+# clone to the standard path
+sudo mkdir -p /opt/attendly && sudo chown "$USER" /opt/attendly
+git clone https://github.com/theetaz/attendly.git /opt/attendly
+cd /opt/attendly && git checkout main
+
+# production secrets (gitignored)
+cp apps/api/.env.example apps/api/.env
+#   JWT_SECRET      = openssl rand -base64 32
+#   ENCRYPTION_KEY  = openssl rand -base64 32
+#   CORS_ORIGINS    = https://attendly.junioremployer.com
+#   (optional) GOOGLE_*, R2_*  — see the table below
+nano apps/api/.env
+
+# build + start (binds 127.0.0.1:8787)
+docker compose up -d --build
+curl -fsS http://127.0.0.1:8787/api/health   # {"ok":true,...}
+```
+
+Then add the nginx vhost (file is in the repo at
+[`deploy/nginx/attendly-api.conf`](deploy/nginx/attendly-api.conf)):
+
+```bash
+sudo cp /opt/attendly/deploy/nginx/attendly-api.conf /etc/nginx/sites-available/attendly-api
+sudo ln -s /etc/nginx/sites-available/attendly-api /etc/nginx/sites-enabled/attendly-api
+sudo nginx -t && sudo systemctl reload nginx   # -t first: don't reload a bad config on a shared box
+```
+
+### `apps/api/.env`
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `ADDR` | — | listen address (default `:8787`) |
-| `DB_PATH` | — | SQLite file path (default `./data/attendly.db`, `/data/...` in Docker) |
-| `JWT_SECRET` | ✅ | HS256 token signing secret (keep stable) |
+| `JWT_SECRET` | ✅ | HS256 token signing secret (keep stable across deploys) |
 | `ENCRYPTION_KEY` | ✅ | AES-GCM key for OAuth tokens at rest |
-| `CORS_ORIGINS` | ✅ | comma-separated allowed origins (the admin URL) |
+| `CORS_ORIGINS` | ✅ | comma-separated allowed origins — the admin domain(s) |
+| `ADDR` / `DB_PATH` / `ASSETS_DIR` | — | set by compose (`:8787`, `/data/...`) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | optional | Google Calendar OAuth |
-| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | optional | object storage; falls back to local disk if unset |
+| `R2_*` | optional | object storage for uploads/PDFs; falls back to the `/data` volume |
 
-> R2 uploads use the S3 API. Create an **R2 API token** (Access Key ID + Secret)
-> in the Cloudflare dashboard and set the four `R2_*` vars. Without them, uploads
-> and PDFs are stored on the container's `/data` volume.
+> If you are **migrating existing data**, reuse the *old* `JWT_SECRET` /
+> `ENCRYPTION_KEY` so existing tokens and encrypted values keep working. A fresh
+> install can generate new ones and create the owner via `/api/setup`.
 
-## One-time VPS setup
+## 3. API — auto-deploy (GitHub Actions → VPS over SSH)
 
-On the VPS (Docker + Docker Compose installed):
+Create a dedicated deploy key (don't reuse a personal key) and authorize it:
 
 ```bash
-sudo mkdir -p /opt/attendly && sudo chown "$USER" /opt/attendly
-git clone <repo-url> /opt/attendly
-cd /opt/attendly
-cp apps/api/.env.example apps/api/.env
-# edit apps/api/.env: set JWT_SECRET, ENCRYPTION_KEY, CORS_ORIGINS, (R2_*, GOOGLE_*)
-docker compose up -d --build
-curl -fsS http://localhost:8787/api/health
+# on your machine
+ssh-keygen -t ed25519 -f attendly_deploy -C "attendly-ci" -N ""
+# copy the PUBLIC key onto the VPS deploy user:
+ssh-copy-id -i attendly_deploy.pub <user>@178.104.111.17
+#   (or append attendly_deploy.pub to ~/.ssh/authorized_keys there)
 ```
 
-Put **Caddy** (auto-HTTPS) or nginx in front, proxying your domain → `:8787`
-(and serving the built admin SPA). Example Caddyfile:
+Then set **Settings → Secrets and variables → Actions**:
 
-```
-api.yourdomain.com {
-    reverse_proxy localhost:8787
-}
-admin.yourdomain.com {
-    root * /opt/attendly/apps/admin/dist
-    try_files {path} /index.html
-    file_server
-}
-```
-
-Build the admin once (`pnpm --filter @tuition/admin build` with
-`VITE_API_BASE_URL=https://api.yourdomain.com`) and point the proxy at
-`apps/admin/dist`.
-
-## GitHub configuration (for auto-deploy)
-
-**Settings → Secrets and variables → Actions.**
-
-| Type | Name | Notes |
+| Type | Name | Value |
 | --- | --- | --- |
-| Secret | `VPS_HOST` | VPS host/IP |
-| Secret | `VPS_USER` | SSH user |
-| Secret | `VPS_SSH_KEY` | private key authorized on the VPS |
-| Variable | `VPS_APP_DIR` | repo path on the VPS (e.g. `/opt/attendly`) |
-| Variable | `VPS_PORT` | SSH port (optional, default 22) |
+| Secret | `VPS_HOST` | `178.104.111.17` |
+| Secret | `VPS_USER` | the deploy user (e.g. `root` or `attendly`) |
+| Secret | `VPS_SSH_KEY` | contents of the **private** `attendly_deploy` key |
+| Variable | `VPS_APP_DIR` | `/opt/attendly` |
+| Variable | `VPS_PORT` | `22` |
 
-Then a merge to `main` SSHes in, pulls, and rebuilds the container.
+After this, every merge to `main` pulls and rebuilds the container, then
+health-checks `http://localhost:8787/api/health`.
 
-## First boot
+## 4. Admin portal — Vercel
 
-Seed the owner once the API is reachable:
+1. **Import** the GitHub repo into Vercel. Leave **Root Directory** at the repo
+   root — the repo's [`vercel.json`](vercel.json) drives the build:
+   - install: `pnpm install --frozen-lockfile`
+   - build: `pnpm --filter @tuition/admin build`
+   - output: `apps/admin/dist`
+   - SPA rewrite: all paths → `index.html`
+2. **Environment variable** (Production):
+   `VITE_API_BASE_URL = https://attendly-api.junioremployer.com`
+3. **Domain**: add `attendly.junioremployer.com` in Vercel → it provisions TLS and gives the
+   DNS record to add in Cloudflare (CNAME, grey-cloud).
+4. Set the API's `CORS_ORIGINS` to that domain (step 2) and redeploy the API.
+
+> Production deploys on merge to `main`. Vercel preview URLs (per-PR) won't pass
+> the API's CORS unless you add them to `CORS_ORIGINS`; fine to skip for now.
+
+## 5. First boot
 
 ```bash
-curl -X POST https://api.yourdomain.com/api/setup \
+curl -X POST https://attendly-api.junioremployer.com/api/setup \
   -H 'content-type: application/json' \
   -d '{"email":"you@institute.lk","name":"Owner","password":"<strong>","org_name":"Your Class"}'
 ```
 
-## Migrating data from the old Cloudflare D1
-
-D1 is SQLite, so the data ports directly:
+## Local development
 
 ```bash
-# from the old setup (one-time), export the remote D1 to SQL:
-wrangler d1 export tuition-db --remote --output attendly-dump.sql
-# load it into the Go backend's SQLite file:
-sqlite3 apps/api/data/attendly.db < attendly-dump.sql
+make up        # install deps, create apps/api/.env (generated dev secrets)
+make backend   # Go API on :8787 (live logs)
+make admin     # admin portal on :5173
+make seed      # create the owner via /api/setup
+make test      # go test -race + admin typecheck
 ```
-
-(Schema is identical — the Go backend applies the same `apps/api/migrations`.)
