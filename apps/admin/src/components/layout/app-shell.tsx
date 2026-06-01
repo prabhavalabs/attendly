@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { NAV_GROUPS } from "./nav-config";
 import { AppSidebar } from "./app-sidebar";
 import { UserMenu } from "./user-menu";
+import { NotificationsBell } from "./notifications-bell";
 import { LangToggle } from "./lang-toggle";
 import { CommandPalette } from "@/components/common/command-palette";
 import { useT } from "@/lib/i18n";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
@@ -59,19 +59,7 @@ export function AppShell() {
               <kbd className="bg-card rounded border px-1.5 text-[11px] font-semibold">⌘K</kbd>
             </button>
             <LangToggle />
-            <Button
-              variant="outline"
-              size="icon"
-              className="relative size-9"
-              aria-label={t("shell.notifications")}
-            >
-              <Bell className="size-4.5" />
-              <span
-                className="absolute top-2 right-2.5 size-1.5 rounded-full"
-                style={{ background: "var(--bad)" }}
-                aria-hidden
-              />
-            </Button>
+            <NotificationsBell />
             <UserMenu />
           </div>
         </header>

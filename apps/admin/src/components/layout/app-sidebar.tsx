@@ -70,7 +70,7 @@ export function AppSidebar() {
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
               <div className="text-foreground truncate text-sm font-bold">{user.name}</div>
               <div className="text-muted-foreground truncate text-xs">
-                {user.roles[0]?.label ?? "Member"}
+                {user.roles?.[0]?.label ?? "Member"}
               </div>
             </div>
           </div>
