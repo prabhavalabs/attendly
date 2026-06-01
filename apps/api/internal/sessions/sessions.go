@@ -195,15 +195,22 @@ func (h *Handlers) list(w http.ResponseWriter, r *http.Request) error {
 	if v := q.Get("status"); v != "" {
 		where, args = append(where, "cs.status = ?"), append(args, v)
 	}
-	query := sessionSelect
+	whereSQL := ""
 	if len(where) > 0 {
-		query += " WHERE " + joinAnd(where)
+		whereSQL = " WHERE " + joinAnd(where)
 	}
-	rows, err := store.QueryMaps(r.Context(), h.db, query+" ORDER BY cs.session_date, cs.start_time", args...)
+	var total int64
+	if err := h.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM class_sessions cs`+whereSQL, args...).Scan(&total); err != nil {
+		return err
+	}
+	p := httpapi.ParsePage(r)
+	rows, err := store.QueryMaps(r.Context(), h.db,
+		sessionSelect+whereSQL+" ORDER BY cs.session_date, cs.start_time LIMIT ? OFFSET ?",
+		append(args, p.Limit, p.Offset)...)
 	if err != nil {
 		return err
 	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"sessions": rows})
+	httpapi.JSON(w, http.StatusOK, map[string]any{"sessions": rows, "total": total, "page": p.Page, "page_size": p.PageSize})
 	return nil
 }
 

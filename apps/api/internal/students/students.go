@@ -48,6 +48,8 @@ func (h *Handlers) Mount(r chi.Router) {
 		r.With(read).Method(http.MethodGet, "/search", httpapi.Handler(h.search))
 		r.With(create).Method(http.MethodPost, "/", httpapi.Handler(h.create))
 		r.With(read).Method(http.MethodGet, "/{id}", httpapi.Handler(h.get))
+		r.With(read).Method(http.MethodGet, "/{id}/summary", httpapi.Handler(h.summary))
+		r.With(read).Method(http.MethodGet, "/{id}/attendance", httpapi.Handler(h.attendance))
 		r.With(read).Method(http.MethodGet, "/{id}/enrollments", httpapi.Handler(h.enrollments))
 		r.With(update).Method(http.MethodPatch, "/{id}", httpapi.Handler(h.update))
 		r.With(del).Method(http.MethodDelete, "/{id}", httpapi.Handler(h.remove))

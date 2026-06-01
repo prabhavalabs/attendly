@@ -86,11 +86,18 @@ func (h *Handlers) listInvoices(w http.ResponseWriter, r *http.Request) error {
 			where, args = append(where, col+" = ?"), append(args, v)
 		}
 	}
-	query := invoiceSelect
+	whereSQL := ""
 	if len(where) > 0 {
-		query += " WHERE " + strings.Join(where, " AND ")
+		whereSQL = " WHERE " + strings.Join(where, " AND ")
 	}
-	rows, err := store.QueryMaps(r.Context(), h.db, query+" ORDER BY i.period DESC, s.name_normalized", args...)
+	var total int64
+	if err := h.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM invoices i`+whereSQL, args...).Scan(&total); err != nil {
+		return err
+	}
+	p := httpapi.ParsePage(r)
+	rows, err := store.QueryMaps(r.Context(), h.db,
+		invoiceSelect+whereSQL+" ORDER BY i.period DESC, s.name_normalized LIMIT ? OFFSET ?",
+		append(args, p.Limit, p.Offset)...)
 	if err != nil {
 		return err
 	}
@@ -98,7 +105,7 @@ func (h *Handlers) listInvoices(w http.ResponseWriter, r *http.Request) error {
 	for _, row := range rows {
 		out = append(out, shapeInvoice(row))
 	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"invoices": out})
+	httpapi.JSON(w, http.StatusOK, map[string]any{"invoices": out, "total": total, "page": p.Page, "page_size": p.PageSize})
 	return nil
 }
 
@@ -184,15 +191,22 @@ func (h *Handlers) listPayments(w http.ResponseWriter, r *http.Request) error {
 	if v := q.Get("student_id"); v != "" {
 		where, args = append(where, "student_id = ?"), append(args, v)
 	}
-	query := `SELECT id, invoice_id, student_id, amount_minor, method, receipt_no, note, paid_at FROM payments`
+	whereSQL := ""
 	if len(where) > 0 {
-		query += " WHERE " + strings.Join(where, " AND ")
+		whereSQL = " WHERE " + strings.Join(where, " AND ")
 	}
-	rows, err := store.QueryMaps(r.Context(), h.db, query+" ORDER BY paid_at DESC", args...)
+	var total int64
+	if err := h.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM payments`+whereSQL, args...).Scan(&total); err != nil {
+		return err
+	}
+	p := httpapi.ParsePage(r)
+	rows, err := store.QueryMaps(r.Context(), h.db,
+		`SELECT id, invoice_id, student_id, amount_minor, method, receipt_no, note, paid_at FROM payments`+whereSQL+" ORDER BY paid_at DESC LIMIT ? OFFSET ?",
+		append(args, p.Limit, p.Offset)...)
 	if err != nil {
 		return err
 	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"payments": rows})
+	httpapi.JSON(w, http.StatusOK, map[string]any{"payments": rows, "total": total, "page": p.Page, "page_size": p.PageSize})
 	return nil
 }
 

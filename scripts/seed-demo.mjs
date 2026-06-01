@@ -41,6 +41,20 @@ async function api(method, path, body) {
   return data;
 }
 
+/** Fetch every page of a paginated list endpoint. */
+async function apiAll(basePath, key) {
+  const items = [];
+  for (let page = 1; ; page++) {
+    const sep = basePath.includes("?") ? "&" : "?";
+    const d = await api("GET", `${basePath}${sep}page=${page}&page_size=100`);
+    const batch = d[key] ?? [];
+    items.push(...batch);
+    const total = d.total ?? batch.length;
+    if (batch.length === 0 || items.length >= total) break;
+  }
+  return items;
+}
+
 const rand = (n) => Math.floor(Math.random() * n);
 const pick = (arr) => arr[rand(arr.length)];
 const chance = (p) => Math.random() < p;
@@ -137,7 +151,7 @@ async function main() {
   console.log(`  ✓ generated ${gen.created} sessions (${from} → ${to})`);
 
   // 5. Mark attendance on past sessions (and set their status)
-  const sessions = (await api("GET", `/api/sessions?from=${from}&to=${to}`)).sessions;
+  const sessions = await apiAll(`/api/sessions?from=${from}&to=${to}`, "sessions");
   const todayStr = iso(TODAY);
   let marked = 0;
   for (const s of sessions) {
@@ -165,7 +179,7 @@ async function main() {
     const { created } = await api("POST", "/api/invoices/generate", { period: p });
     console.log(`  ✓ invoices for ${p}: ${created}`);
   }
-  const invoices = (await api("GET", "/api/invoices")).invoices;
+  const invoices = await apiAll("/api/invoices", "invoices");
   let paid = 0, partial = 0, unpaid = 0;
   for (const inv of invoices) {
     const r = Math.random();

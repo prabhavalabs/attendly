@@ -77,7 +77,18 @@ func (h *Handlers) defaulters(w http.ResponseWriter, r *http.Request) error {
 		}
 		return writeCSV(w, "defaulters.csv", []string{"reg_no", "name", "outstanding_lkr", "overdue_periods", "unpaid_invoices"}, rows)
 	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"defaulters": ds})
+	// JSON path is paginated; CSV export above returns the full set.
+	total := len(ds)
+	p := httpapi.ParsePage(r)
+	start := p.Offset
+	if start > total {
+		start = total
+	}
+	end := start + p.Limit
+	if end > total {
+		end = total
+	}
+	httpapi.JSON(w, http.StatusOK, map[string]any{"defaulters": ds[start:end], "total": total, "page": p.Page, "page_size": p.PageSize})
 	return nil
 }
 

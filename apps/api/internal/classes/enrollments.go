@@ -13,15 +13,20 @@ import (
 	"attendly/api/internal/store"
 )
 
-func (h *Handlers) enrollmentsFor(ctx context.Context, classID string) ([]map[string]any, error) {
-	rows, err := store.QueryMaps(ctx, h.db,
-		`SELECT e.id, e.class_id, e.status, e.fee_override_minor, e.enrolled_at,
+func (h *Handlers) enrollmentsFor(ctx context.Context, classID string, limit, offset int) ([]map[string]any, error) {
+	query := `SELECT e.id, e.class_id, e.status, e.fee_override_minor, e.enrolled_at,
 		        COALESCE(e.fee_override_minor, c.fee_minor) AS effective_fee_minor,
 		        s.id AS s_id, s.reg_no, s.full_name, s.phone, s.photo_url, s.status AS s_status, s.card_status
 		   FROM enrollments e
 		   JOIN students s ON s.id = e.student_id AND s.deleted_at IS NULL
 		   JOIN classes c ON c.id = e.class_id
-		  WHERE e.class_id = ? ORDER BY e.status, s.name_normalized`, classID)
+		  WHERE e.class_id = ? ORDER BY e.status, s.name_normalized`
+	args := []any{classID}
+	if limit > 0 {
+		query += " LIMIT ? OFFSET ?"
+		args = append(args, limit, offset)
+	}
+	rows, err := store.QueryMaps(ctx, h.db, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -45,11 +50,16 @@ func (h *Handlers) listEnrollments(w http.ResponseWriter, r *http.Request) error
 	if err := h.requireClass(r.Context(), id); err != nil {
 		return err
 	}
-	es, err := h.enrollmentsFor(r.Context(), id)
+	p := httpapi.ParsePage(r)
+	var total int64
+	if err := h.db.QueryRowContext(r.Context(), `SELECT COUNT(*) FROM enrollments WHERE class_id = ?`, id).Scan(&total); err != nil {
+		return err
+	}
+	es, err := h.enrollmentsFor(r.Context(), id, p.Limit, p.Offset)
 	if err != nil {
 		return err
 	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"enrollments": es})
+	httpapi.JSON(w, http.StatusOK, map[string]any{"enrollments": es, "total": total, "page": p.Page, "page_size": p.PageSize})
 	return nil
 }
 
@@ -111,11 +121,7 @@ func (h *Handlers) addEnrollment(w http.ResponseWriter, r *http.Request) error {
 	}
 	actor := h.actor(r)
 	_ = store.WriteAudit(r.Context(), h.db, store.AuditEntry{ActorID: &actor, Action: "enrollment.add", EntityType: sp("class"), EntityID: &classID, After: map[string]any{"student_id": in.StudentID}})
-	es, err := h.enrollmentsFor(r.Context(), classID)
-	if err != nil {
-		return err
-	}
-	httpapi.JSON(w, http.StatusCreated, map[string]any{"enrollments": es})
+	httpapi.JSON(w, http.StatusCreated, map[string]any{"ok": true})
 	return nil
 }
 
@@ -149,11 +155,7 @@ func (h *Handlers) updateEnrollment(w http.ResponseWriter, r *http.Request) erro
 		actor := h.actor(r)
 		_ = store.WriteAudit(r.Context(), h.db, store.AuditEntry{ActorID: &actor, Action: "enrollment.update", EntityType: sp("class"), EntityID: &classID})
 	}
-	es, err := h.enrollmentsFor(r.Context(), classID)
-	if err != nil {
-		return err
-	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"enrollments": es})
+	httpapi.JSON(w, http.StatusOK, map[string]any{"ok": true})
 	return nil
 }
 
@@ -164,11 +166,7 @@ func (h *Handlers) removeEnrollment(w http.ResponseWriter, r *http.Request) erro
 	}
 	actor := h.actor(r)
 	_ = store.WriteAudit(r.Context(), h.db, store.AuditEntry{ActorID: &actor, Action: "enrollment.remove", EntityType: sp("class"), EntityID: &classID})
-	es, err := h.enrollmentsFor(r.Context(), classID)
-	if err != nil {
-		return err
-	}
-	httpapi.JSON(w, http.StatusOK, map[string]any{"enrollments": es})
+	httpapi.JSON(w, http.StatusOK, map[string]any{"ok": true})
 	return nil
 }
 
