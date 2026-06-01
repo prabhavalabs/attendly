@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Attendly app icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="256" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1a9384"></stop>
+      <stop offset="0.55" stop-color="#0e766a"></stop>
+      <stop offset="1" stop-color="#0a4f47"></stop>
+    </linearGradient>
+    <radialGradient id="hl" cx="0.28" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"></stop>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.03"></stop>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop>
+    </radialGradient>
+    <linearGradient id="band" x1="252" y1="0" x2="772" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f0b429"></stop>
+      <stop offset="1" stop-color="#e0a422"></stop>
+    </linearGradient>
+    <clipPath id="cardClip"><rect x="252" y="194.5" width="520" height="635" rx="82.5"></rect></clipPath>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="46" flood-color="#041e1a" flood-opacity="0.30"></feDropShadow>
+    </filter>
+  </defs>
+
+  
+  <rect width="1024" height="1024" fill="url(#bg)"></rect>
+  <rect width="1024" height="1024" fill="url(#hl)"></rect>
+
+  
+  <g filter="url(#sh)">
+    <rect x="252" y="194.5" width="520" height="635" rx="82.5" fill="#ffffff"></rect>
+  </g>
+  
+  <g clip-path="url(#cardClip)">
+    <rect x="252" y="194.5" width="520" height="162" fill="url(#band)"></rect>
+  </g>
+  
+  <path d="M384.6 613.6 L480.8 708.9 L655.0 461.2" fill="none" stroke="#0e766a" stroke-width="85.7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
