@@ -3,7 +3,7 @@
 services:
   backend:
     build:
-      context: ./apps/api-go
+      context: ./apps/api
     image: attendly-backend:local
     container_name: attendly-backend
     env_file:

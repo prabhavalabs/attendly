@@ -9,7 +9,7 @@ MAKEFLAGS += --no-print-directory
 
 PNPM     ?= pnpm
 GO       ?= go
-API_DIR  := apps/api-go
+API_DIR  := apps/api
 ENV_FILE := $(API_DIR)/.env
 API_URL  ?= http://localhost:8787
 
