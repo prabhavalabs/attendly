@@ -23,6 +23,7 @@ import (
 	"attendly/api/internal/checkin"
 	"attendly/api/internal/classes"
 	"attendly/api/internal/config"
+	"attendly/api/internal/cron"
 	"attendly/api/internal/dashboard"
 	"attendly/api/internal/httpapi"
 	"attendly/api/internal/integrations"
@@ -138,6 +139,11 @@ func run() error {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
+	scheduler := cron.New(db)
+	if err := scheduler.Start(); err != nil {
+		return err
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -153,5 +159,6 @@ func run() error {
 	slog.Info("shutting down")
 	shutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	scheduler.Stop(shutCtx)
 	return srv.Shutdown(shutCtx)
 }
