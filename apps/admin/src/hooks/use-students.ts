@@ -169,6 +169,24 @@ export async function openCardPdf(id: string): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+/** Fetch the card QR as a data URL for the on-screen card view. */
+export function useCardQr(id: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["card-qr", id],
+    enabled: !!id && enabled,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const blob = await api.blob(`/api/students/${id}/card-qr.png`);
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = () => reject(fr.error);
+        fr.readAsDataURL(blob);
+      });
+    },
+  });
+}
+
 /* -------------------------------- Guardians ------------------------------ */
 
 export function useAddGuardian(studentId: string) {
