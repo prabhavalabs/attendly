@@ -13,8 +13,10 @@ services:
       ADDR: ":8787"
       DB_PATH: /data/attendly.db
       ASSETS_DIR: /data/assets
+    # Bind to loopback only — the API is reached through the host nginx reverse
+    # proxy (with Cloudflare in front), never directly from the internet.
     ports:
-      - "8787:8787"
+      - "127.0.0.1:8787:8787"
     volumes:
       - attendly-data:/data
     restart: unless-stopped
