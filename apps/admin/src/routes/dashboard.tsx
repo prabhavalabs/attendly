@@ -7,7 +7,7 @@ import { useDashboard } from "@/hooks/use-dashboard";
 import { useT } from "@/lib/i18n";
 import { formatLKR } from "@/lib/money";
 import { timeAgo } from "@/lib/format";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { ClassChip } from "@/components/classes/band";
 import { SessionStatusBadge } from "@/components/sessions/session-status";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,9 +37,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader title={`${t("dash.welcome")}, ${firstName}`} description={t("dash.subtitle")} />
-
+    <Page title={`${t("dash.welcome")}, ${firstName}`} description={t("dash.subtitle")}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
           <div key={kpi.label} className="bg-card relative overflow-hidden rounded-2xl border p-5" style={{ boxShadow: "var(--sh-flat)" }}>
@@ -135,6 +133,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </Page>
   );
 }

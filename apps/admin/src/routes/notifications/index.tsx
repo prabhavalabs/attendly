@@ -4,7 +4,7 @@ import type { NotificationStatus } from "@tuition/shared";
 
 import { useNotifications } from "@/hooks/use-notifications";
 import { timeAgo, formatDateTime } from "@/lib/format";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { StatusBadge, type StatusTone } from "@/components/common/status-badge";
 import { ComposeDialog } from "@/components/notifications/compose-dialog";
@@ -29,17 +29,15 @@ export default function NotificationsPage() {
   const [composeOpen, setComposeOpen] = useState(false);
 
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader
-        title="Notifications"
-        description="Send announcements and reminders to students and guardians."
-        actions={
-          <Can perm="notification.send">
-            <Button onClick={() => setComposeOpen(true)}><Plus className="size-4" /> New notification</Button>
-          </Can>
-        }
-      />
-
+    <Page
+      title="Notifications"
+      description="Send announcements and reminders to students and guardians."
+      actions={
+        <Can perm="notification.send">
+          <Button onClick={() => setComposeOpen(true)}><Plus className="size-4" /> New notification</Button>
+        </Can>
+      }
+    >
       {isLoading ? (
         <div className="grid gap-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}</div>
       ) : (notifications ?? []).length === 0 ? (
@@ -79,6 +77,6 @@ export default function NotificationsPage() {
       )}
 
       <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
-    </div>
+    </Page>
   );
 }

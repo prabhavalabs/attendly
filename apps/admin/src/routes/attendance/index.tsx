@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ClipboardCheck, ChevronRight } from "lucide-react";
 
 import { useSessions } from "@/hooks/use-sessions";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { ClassChip } from "@/components/classes/band";
 import { SessionStatusBadge } from "@/components/sessions/session-status";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,7 @@ export default function AttendancePage() {
   const { data: sessions, isLoading } = useSessions({ from: date, to: date });
 
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader title="Attendance" description="Pick a day and open a session to mark the roster." />
-
+    <Page title="Attendance" description="Pick a day and open a session to mark the roster.">
       <div className="bg-card mb-5 flex items-end gap-3 rounded-2xl border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
         <div className="grid gap-1.5">
           <Label className="text-xs">Date</Label>
@@ -68,6 +66,6 @@ export default function AttendancePage() {
           </ul>
         </div>
       )}
-    </div>
+    </Page>
   );
 }

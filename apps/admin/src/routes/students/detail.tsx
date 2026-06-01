@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
-import { Link, useParams } from "@tanstack/react-router";
+import { useParams } from "@tanstack/react-router";
 import {
-  ChevronLeft,
   Pencil,
   Printer,
   CreditCard,
@@ -30,6 +29,7 @@ import {
 import { useInvoices } from "@/hooks/use-billing";
 import { formatDate } from "@/lib/format";
 import { formatLKR } from "@/lib/money";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -115,20 +115,16 @@ export default function StudentDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8">
-        <Skeleton className="mb-4 h-4 w-24" />
+      <Page crumbs={[{ label: "Students", to: "/students" }, { label: "…" }]}>
         <Skeleton className="h-40 w-full rounded-2xl" />
-      </div>
+      </Page>
     );
   }
   if (isError || !student) {
     return (
-      <div className="p-6 md:p-8">
-        <Link to="/students" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
-          <ChevronLeft className="size-4" /> Students
-        </Link>
+      <Page crumbs={[{ label: "Students", to: "/students" }, { label: "Not found" }]}>
         <div className="text-muted-foreground mt-10 text-center text-sm">Student not found.</div>
-      </div>
+      </Page>
     );
   }
 
@@ -143,11 +139,7 @@ export default function StudentDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6 md:p-8">
-      <Link to="/students" className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm">
-        <ChevronLeft className="size-4" /> Students
-      </Link>
-
+    <Page crumbs={[{ label: "Students", to: "/students" }, { label: student.full_name }]}>
       {/* Hero — the card motif */}
       <div
         className="bg-card relative mb-5 overflow-hidden rounded-2xl border p-6"
@@ -419,6 +411,6 @@ export default function StudentDetailPage() {
         destructive={cardAction === "revoke"}
         onConfirm={confirmCardAction}
       />
-    </div>
+    </Page>
   );
 }

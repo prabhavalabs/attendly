@@ -5,7 +5,7 @@ import { CalendarPlus, CalendarCheck } from "lucide-react";
 import { useClasses } from "@/hooks/use-classes";
 import { useSessions } from "@/hooks/use-sessions";
 import { formatDate } from "@/lib/format";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { ClassChip } from "@/components/classes/band";
 import { SessionStatusBadge } from "@/components/sessions/session-status";
@@ -49,19 +49,17 @@ export default function SessionsPage() {
   }, [sessions]);
 
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader
-        title="Sessions"
-        description="Generate sessions from the timetable and open rosters for check-in."
-        actions={
-          <Can perm="session.manage">
-            <Button onClick={() => setGenOpen(true)}>
-              <CalendarPlus className="size-4" /> Generate
-            </Button>
-          </Can>
-        }
-      />
-
+    <Page
+      title="Sessions"
+      description="Generate sessions from the timetable and open rosters for check-in."
+      actions={
+        <Can perm="session.manage">
+          <Button onClick={() => setGenOpen(true)}>
+            <CalendarPlus className="size-4" /> Generate
+          </Button>
+        </Can>
+      }
+    >
       <div className="bg-card mb-5 flex flex-wrap items-end gap-3 rounded-2xl border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
         <div className="grid gap-1.5">
           <Label className="text-xs">From</Label>
@@ -134,6 +132,6 @@ export default function SessionsPage() {
       )}
 
       <GenerateDialog open={genOpen} onOpenChange={setGenOpen} defaultFrom={from} defaultTo={to} />
-    </div>
+    </Page>
   );
 }

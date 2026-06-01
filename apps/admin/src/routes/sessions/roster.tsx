@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link, useParams } from "@tanstack/react-router";
-import { ChevronLeft, ChevronDown } from "lucide-react";
+import { useParams } from "@tanstack/react-router";
+import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import type { SessionStatus, RosterEntry } from "@tuition/shared";
 
 import { useRoster, useUpdateSession, useMarkAttendance, useClearAttendance } from "@/hooks/use-sessions";
 import { useLecturers } from "@/hooks/use-lecturers";
 import { formatDate } from "@/lib/format";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { ClassChip } from "@/components/classes/band";
@@ -47,20 +48,16 @@ export default function SessionRosterPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8">
-        <Skeleton className="mb-4 h-4 w-20" />
+      <Page crumbs={[{ label: "Sessions", to: "/sessions" }, { label: "…" }]}>
         <Skeleton className="h-28 w-full rounded-2xl" />
-      </div>
+      </Page>
     );
   }
   if (isError || !data?.session) {
     return (
-      <div className="p-6 md:p-8">
-        <Link to="/sessions" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm">
-          <ChevronLeft className="size-4" /> Sessions
-        </Link>
+      <Page crumbs={[{ label: "Sessions", to: "/sessions" }, { label: "Not found" }]}>
         <div className="text-muted-foreground mt-10 text-center text-sm">Session not found.</div>
-      </div>
+      </Page>
     );
   }
 
@@ -79,11 +76,7 @@ export default function SessionRosterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6 md:p-8">
-      <Link to="/sessions" className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm">
-        <ChevronLeft className="size-4" /> Sessions
-      </Link>
-
+    <Page crumbs={[{ label: "Sessions", to: "/sessions" }, { label: s.class_name }]}>
       <div className="bg-card mb-5 rounded-2xl border p-6" style={{ boxShadow: "var(--sh-card)" }}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -187,6 +180,6 @@ export default function SessionRosterPage() {
       <p className="text-muted-foreground mt-3 text-center text-xs">
         Mark students above, or scan their cards at the door with the mobile app.
       </p>
-    </div>
+    </Page>
   );
 }

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { InvoicesTab } from "@/components/billing/invoices-tab";
 import { DefaultersTab } from "@/components/billing/defaulters-tab";
@@ -6,8 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function BillingPage() {
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader title="Billing" description="Generate monthly invoices, record payments and track defaulters." />
+    <Page title="Billing" description="Generate monthly invoices, record payments and track defaulters.">
       <Tabs defaultValue="invoices">
         <TabsList>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
@@ -22,6 +21,6 @@ export default function BillingPage() {
           <DefaultersTab />
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   );
 }

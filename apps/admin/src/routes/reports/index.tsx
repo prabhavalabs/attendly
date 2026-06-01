@@ -3,7 +3,7 @@ import { Download } from "lucide-react";
 
 import { useAttendanceReport, useRevenueReport, downloadReportCsv } from "@/hooks/use-reports";
 import { formatLKR } from "@/lib/money";
-import { PageHeader } from "@/components/common/page-header";
+import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { ClassChip } from "@/components/classes/band";
 import { DefaultersTab } from "@/components/billing/defaulters-tab";
@@ -111,8 +111,7 @@ function RevenueReport() {
 
 export default function ReportsPage() {
   return (
-    <div className="p-6 md:p-8">
-      <PageHeader title="Reports" description="Attendance, revenue and defaulters — view and export." />
+    <Page title="Reports" description="Attendance, revenue and defaulters — view and export.">
       <Tabs defaultValue="attendance">
         <TabsList>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
@@ -132,6 +131,6 @@ export default function ReportsPage() {
           <DefaultersTab />
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   );
 }
