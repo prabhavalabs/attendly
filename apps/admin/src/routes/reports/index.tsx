@@ -8,9 +8,10 @@ import { formatLKR } from "@/lib/money";
 import { Page } from "@/components/layout/page";
 import { Can } from "@/components/auth/can";
 import { ClassChip } from "@/components/classes/band";
+import { AttendanceChart, RevenueChart } from "@/components/reports/report-charts";
 import { DefaultersTab } from "@/components/billing/defaulters-tab";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,8 +33,8 @@ function AttendanceReport() {
   return (
     <div>
       <div className="bg-card mb-4 flex flex-wrap items-end gap-3 rounded-2xl border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
-        <div className="grid gap-1.5"><Label className="text-xs">From</Label><Input type="date" value={from} onChange={(e) => setSearch({ from: e.target.value })} className="w-40" /></div>
-        <div className="grid gap-1.5"><Label className="text-xs">To</Label><Input type="date" value={to} onChange={(e) => setSearch({ to: e.target.value })} className="w-40" /></div>
+        <div className="grid gap-1.5"><Label className="text-xs">From</Label><DatePicker value={from} onChange={(v) => setSearch({ from: v })} aria-label="From date" className="w-40" /></div>
+        <div className="grid gap-1.5"><Label className="text-xs">To</Label><DatePicker value={to} onChange={(v) => setSearch({ to: v })} aria-label="To date" className="w-40" /></div>
         <div className="ml-auto">
           <Can perm="report.export">
             <Button variant="outline" onClick={() => void downloadReportCsv(`/api/reports/attendance?from=${from}&to=${to}&format=csv`, "attendance.csv")}>
@@ -42,6 +43,7 @@ function AttendanceReport() {
           </Can>
         </div>
       </div>
+      {!isLoading ? <AttendanceChart rows={rows ?? []} /> : null}
       <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
         <Table>
           <TableHeader>
@@ -83,6 +85,7 @@ function RevenueReport() {
           </Button>
         </Can>
       </div>
+      {!isLoading ? <RevenueChart rows={rows ?? []} /> : null}
       <div className="bg-card overflow-hidden rounded-2xl border" style={{ boxShadow: "var(--sh-flat)" }}>
         <Table>
           <TableHeader>

@@ -14,7 +14,7 @@ import { SessionStatusBadge } from "@/components/sessions/session-status";
 import { GenerateDialog } from "@/components/sessions/generate-dialog";
 import { Pager } from "@/components/common/pager";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -71,11 +71,11 @@ export default function SessionsPage() {
       <div className="bg-card mb-5 flex flex-wrap items-end gap-3 rounded-2xl border p-4" style={{ boxShadow: "var(--sh-flat)" }}>
         <div className="grid gap-1.5">
           <Label className="text-xs">From</Label>
-          <Input type="date" value={from} onChange={(e) => setSearch({ from: e.target.value, page: 1 })} className="w-40" />
+          <DatePicker value={from} onChange={(v) => setSearch({ from: v, page: 1 })} aria-label="From date" className="w-40" />
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">To</Label>
-          <Input type="date" value={to} onChange={(e) => setSearch({ to: e.target.value, page: 1 })} className="w-40" />
+          <DatePicker value={to} onChange={(v) => setSearch({ to: v, page: 1 })} aria-label="To date" className="w-40" />
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">Class</Label>
