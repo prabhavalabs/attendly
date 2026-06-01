@@ -21,8 +21,8 @@ ORG_NAME       ?= attendly
 
 .PHONY: help up env install backend admin dev \
         test test-go build build-go fmt vet lint tidy \
-        docker-build docker-up docker-down docker-logs \
-        seed health stop clean
+        docker-build docker-up docker-dev docker-down docker-logs \
+        seed seed-demo health stop clean
 
 ## ---- Help --------------------------------------------------------------
 
@@ -104,6 +104,9 @@ docker-build: ## Build the backend Docker image
 docker-up: env ## Build + start the backend container (:8787)
 	docker compose up --build -d
 	@echo "Backend container up on $(API_URL)"
+
+docker-dev: env ## Start the backend in Docker with Go live-reload (air) — foreground
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 docker-down: ## Stop the backend container
 	docker compose down
