@@ -11,6 +11,7 @@ import (
 
 	"attendly/api/internal/attendance"
 	"attendly/api/internal/auth"
+	"attendly/api/internal/cryptox"
 	"attendly/api/internal/httpapi"
 )
 
@@ -63,8 +64,8 @@ func (h *Handlers) processOne(ctx context.Context, actorID string, in checkinInp
 		in.Status = "present"
 	}
 
-	var sessID string
-	err := h.db.QueryRowContext(ctx, `SELECT id FROM class_sessions WHERE id = ?`, in.SessionID).Scan(&sessID)
+	var sessID, sessStatus string
+	err := h.db.QueryRowContext(ctx, `SELECT id, status FROM class_sessions WHERE id = ?`, in.SessionID).Scan(&sessID, &sessStatus)
 	if err == sql.ErrNoRows {
 		return result{OK: false, Error: "session_not_found", ClientDedupKey: key}, nil
 	}
@@ -87,6 +88,19 @@ func (h *Handlers) processOne(ctx context.Context, actorID string, in checkinInp
 	if err != nil {
 		return result{}, err
 	}
+
+	// Taking attendance means the session is live: promote scheduled → open so the
+	// mark counts toward every attendance stat (student %, heatmap, recent,
+	// dashboard, reports), which all filter to status IN ('open','closed').
+	// Idempotent and safe to repeat; closed/cancelled sessions are left untouched.
+	if sessStatus == "scheduled" {
+		if _, err := h.db.ExecContext(ctx,
+			`UPDATE class_sessions SET status = 'open', updated_at = ? WHERE id = ? AND status = 'scheduled'`,
+			cryptox.NowISO(), in.SessionID); err != nil {
+			return result{}, err
+		}
+	}
+
 	alert, err := attendance.Alert(ctx, h.db, student.ID)
 	if err != nil {
 		return result{}, err

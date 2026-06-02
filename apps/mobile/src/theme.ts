@@ -1,15 +1,17 @@
-/** Brand tokens for the door check-in app (kept intentionally small). */
+/** Brand tokens for the door check-in app — mirrors the Attendly teal identity. */
 export const colors = {
-  bg: "#F6F8FB",
+  bg: "#F5F7F6",
   card: "#FFFFFF",
   border: "#E3E8EF",
   text: "#0F172A",
   muted: "#64748B",
-  primary: "#208AEF",
+  primary: "#0E766A",
+  primaryDark: "#0A4F47",
   primaryText: "#FFFFFF",
+  accent: "#F59E0B",
   success: "#16A34A",
   successBg: "#DCFCE7",
-  warning: "#D97706",
+  warning: "#B4790A",
   warningBg: "#FEF3C7",
   danger: "#DC2626",
   dangerBg: "#FEE2E2",
