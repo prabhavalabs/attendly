@@ -1,5 +1,5 @@
 import { CalendarCheck } from "lucide-react";
-import { addDays, format, startOfToday, subDays } from "date-fns";
+import { addDays, format, getDay, startOfToday, subDays } from "date-fns";
 
 import { useStudentAttendance } from "@/hooks/use-students";
 import { formatDate } from "@/lib/format";
@@ -28,21 +28,30 @@ const STATUS_TONE: Record<string, StatusTone> = {
   absent: "bad",
 };
 
-function Swatch({ code, date }: { code: string; date: Date }) {
+const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function DayCell({ code, date }: { code: string; date: Date }) {
   const color = CODE_COLOR[code];
   const status = code ? CODE_LABEL[code] : "No session";
   const label = `${format(date, "EEE, dd MMM yyyy")} — ${status}`;
   return (
     <div
-      className="aspect-square rounded-[5px] border"
+      className="relative flex aspect-square items-center justify-center rounded-[6px] border"
       title={label}
+      aria-label={label}
       style={
         color
           ? { background: color, borderColor: "transparent" }
           : { background: "var(--muted)", borderColor: "var(--border)" }
       }
-      aria-label={label}
-    />
+    >
+      <span
+        className="text-[11px] leading-none font-semibold"
+        style={{ color: color ? "rgba(255,255,255,0.95)" : "var(--ink-500)" }}
+      >
+        {format(date, "d")}
+      </span>
+    </div>
   );
 }
 
@@ -63,31 +72,55 @@ export function AttendanceTab({ studentId }: { studentId: string }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
-      {/* Heatmap — last 35 days, 7 columns per week */}
+      {/* Heatmap — last 35 days as a weekday-aligned calendar */}
       <div className="bg-card rounded-2xl border p-5" style={{ boxShadow: "var(--sh-flat)" }}>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-display text-sm font-semibold">Last 35 days</h3>
-          <div className="flex items-center gap-3">
-            {LEGEND.map((c) => (
-              <span key={c} className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                <span className="size-2.5 rounded-[3px]" style={{ background: CODE_COLOR[c] }} />
-                {CODE_LABEL[c]}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-7 gap-1.5">
-          {(() => {
-            // The heatmap is `length` days ending today, oldest first.
-            const firstDay = subDays(startOfToday(), heatmap.length - 1);
-            return heatmap.map((code, i) => (
-              <Swatch key={i} code={code} date={addDays(firstDay, i)} />
-            ));
-          })()}
-        </div>
-        <p className="text-muted-foreground mt-3 text-xs">
-          One cell per day across this student's enrolled classes; the best status that day is shown.
-        </p>
+        {(() => {
+          const today = startOfToday();
+          const firstDay = subDays(today, Math.max(heatmap.length - 1, 0));
+          // Pad the front so columns line up with weekdays (Sun … Sat).
+          const cells: ({ code: string; date: Date } | null)[] = [
+            ...Array(getDay(firstDay)).fill(null),
+            ...heatmap.map((code, i) => ({ code, date: addDays(firstDay, i) })),
+          ];
+          while (cells.length % 7 !== 0) cells.push(null);
+          return (
+            <>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-display text-sm font-semibold">Last 35 days</h3>
+                  <p className="text-muted-foreground text-[11px]">
+                    {format(firstDay, "d MMM")} – {format(today, "d MMM yyyy")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {LEGEND.map((c) => (
+                    <span key={c} className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                      <span className="size-2.5 rounded-[3px]" style={{ background: CODE_COLOR[c] }} />
+                      {CODE_LABEL[c]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {WEEKDAY_LETTERS.map((d, i) => (
+                  <div key={`h${i}`} className="text-muted-foreground pb-0.5 text-center text-[10px] font-bold">
+                    {d}
+                  </div>
+                ))}
+                {cells.map((cell, i) =>
+                  cell ? (
+                    <DayCell key={i} code={cell.code} date={cell.date} />
+                  ) : (
+                    <div key={i} className="aspect-square" aria-hidden />
+                  ),
+                )}
+              </div>
+              <p className="text-muted-foreground mt-3 text-xs">
+                One cell per day across this student's enrolled classes; the colour shows the best status that day.
+              </p>
+            </>
+          );
+        })()}
       </div>
 
       {/* Recent sessions */}

@@ -32,6 +32,7 @@ import { formatLKR } from "@/lib/money";
 import { timeAgo } from "@/lib/format";
 import { Page } from "@/components/layout/page";
 import { ClassChip } from "@/components/classes/band";
+import { ChartTooltip } from "@/components/common/chart-tooltip";
 import { SessionStatusBadge } from "@/components/sessions/session-status";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -201,8 +202,7 @@ export default function DashboardPage() {
                     />
                     <Tooltip
                       cursor={{ stroke: "var(--border)" }}
-                      formatter={(v) => formatLKR(Math.round(Number(v) * 100))}
-                      contentStyle={{ borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12 }}
+                      content={<ChartTooltip valueFormatter={(v) => formatLKR(Math.round(v * 100))} />}
                     />
                     <Area type="monotone" dataKey="Billed" stroke="var(--neutral)" strokeWidth={1.5} fill="url(#dashBilled)" isAnimationActive={false} />
                     <Area type="monotone" dataKey="Collected" stroke="var(--ok)" strokeWidth={2} fill="url(#dashCollected)" isAnimationActive={false} />
