@@ -140,21 +140,22 @@ export default function CheckinScreen() {
 
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safe}>
+      {/* Chrome (incl. the camera) lives OUTSIDE the FlatList — a CameraView
+          inside a virtualized list renders black on Android. */}
+      <View style={styles.chrome}>{header}</View>
       {mode === "manual" ? (
         <FlatList
           data={filtered}
           keyExtractor={(r) => r.student_id}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={header}
+          contentContainerStyle={styles.listBody}
           renderItem={({ item }) => <RosterItem row={item} onPress={() => checkIn({ method: "search", studentId: item.student_id, status })} />}
         />
       ) : (
         <FlatList
           data={log}
           keyExtractor={(r) => r.id}
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={header}
+          contentContainerStyle={styles.listBody}
           renderItem={({ item }) => <LogItem row={item} />}
           ListEmptyComponent={<Text style={styles.empty}>Point the camera at a student card to check them in.</Text>}
         />
@@ -200,7 +201,8 @@ function LogItem({ row }: { row: OutboxRow }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: space.lg, gap: space.sm },
+  chrome: { paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.sm },
+  listBody: { paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.lg, gap: space.sm },
   statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   statusLeft: { flexDirection: "row", alignItems: "center", gap: space.sm },
   dot: { width: 8, height: 8, borderRadius: 4 },
