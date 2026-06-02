@@ -62,10 +62,11 @@ const styles = StyleSheet.create({
   frame: {
     height: 280,
     borderRadius: radius.lg,
-    overflow: "hidden",
     backgroundColor: "#000",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   placeholder: {
     height: 280,
