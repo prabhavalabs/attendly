@@ -25,6 +25,16 @@ export function useCheckin(sessionId: string) {
 
   const { mutate: runSync, isPending: syncing } = useMutation({
     mutationFn: () => flush(),
+    onSuccess: (result) => {
+      // When the server actually accepted check-ins, refresh the server-derived
+      // views so counts update live: the roster's per-student marks and the
+      // sessions list's present_count. Without this the app only refreshed the
+      // local outbox and the counts looked stale until a manual reload.
+      if (result.synced > 0) {
+        void qc.invalidateQueries({ queryKey: ["roster", sessionId] });
+        void qc.invalidateQueries({ queryKey: ["sessions", "today"] });
+      }
+    },
     onSettled: () => refresh(),
   });
   const sync = useCallback(() => runSync(), [runSync]);
