@@ -50,21 +50,30 @@ EXPO_PUBLIC_API_BASE_URL=https://attendly-api.junioremployer.com
 
 ### Android (primary target)
 
+This app uses native modules (camera, NFC, SQLite) via **`expo-dev-client`**, so
+it runs in a custom dev build — **not Expo Go**. First time, build & install that
+dev client; after that, just start the Metro server for fast JS reloads.
+
 ```bash
-pnpm install                              # from the repo root (workspace)
-pnpm --filter @tuition/mobile android     # build + launch on emulator/device
+pnpm install                              # repo root (workspace; .npmrc pins node-linker=hoisted for autolinking)
+
+# 1) one-time native build → installs the dev client + launches (needs Android Studio + SDK)
+pnpm --filter @tuition/mobile android     # = expo run:android (Gradle build, a few min)
+
+# 2) day-to-day: just the JS dev server (connects to the installed dev client)
+pnpm --filter @tuition/mobile start       # = expo start --dev-client
 ```
 
 - **Emulator** — start an Android Virtual Device (Android Studio ▸ Device
-  Manager) first, then run the command above.
-- **Physical device** — enable USB debugging and plug in, or install **Expo Go**
-  / a dev client and scan the QR from `pnpm --filter @tuition/mobile start`.
+  Manager) **before** step 1.
+- **Physical device** — enable USB debugging and plug in (or `--device`).
 - **Local backend instead of prod?** Use `http://10.0.2.2:8787` for the
   emulator (the host is `10.0.2.2`, not `localhost`) or your machine's LAN IP for
   a device — see `.env.example`.
 
-> Camera (QR) and NFC need a real device or a dev client — not a plain browser.
-> The prod API URL above is the quickest path to a working device test.
+> `expo start --android` / Expo Go won't work here — they can't load the NFC/
+> camera native modules. Use `expo run:android` (the `android` script) to build
+> the dev client.
 
 ### Other targets
 
