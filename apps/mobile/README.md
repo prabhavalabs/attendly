@@ -41,20 +41,38 @@ syncing when a connection returns.
 
 ## Run locally
 
-The API must be running (`pnpm --filter @tuition/api dev`, on `:8787`).
+Set the API URL once (`cp .env.example .env`). The simplest setup points at the
+deployed API — a native build needs no CORS and works on emulator and device:
 
-```bash
-# point the app at the API (defaults to http://localhost:8787)
-export EXPO_PUBLIC_API_BASE_URL="http://localhost:8787"
-
-pnpm --filter @tuition/mobile start      # dev server (press w / i / a)
-pnpm --filter @tuition/mobile web        # PWA in the browser
-pnpm --filter @tuition/mobile typecheck
+```
+EXPO_PUBLIC_API_BASE_URL=https://attendly-api.junioremployer.com
 ```
 
-For a device on your LAN, set `EXPO_PUBLIC_API_BASE_URL` to your machine's LAN
-IP (e.g. `http://192.168.1.x:8787`) and add that origin to the API's
-`CORS_ORIGINS`.
+### Android (primary target)
+
+```bash
+pnpm install                              # from the repo root (workspace)
+pnpm --filter @tuition/mobile android     # build + launch on emulator/device
+```
+
+- **Emulator** — start an Android Virtual Device (Android Studio ▸ Device
+  Manager) first, then run the command above.
+- **Physical device** — enable USB debugging and plug in, or install **Expo Go**
+  / a dev client and scan the QR from `pnpm --filter @tuition/mobile start`.
+- **Local backend instead of prod?** Use `http://10.0.2.2:8787` for the
+  emulator (the host is `10.0.2.2`, not `localhost`) or your machine's LAN IP for
+  a device — see `.env.example`.
+
+> Camera (QR) and NFC need a real device or a dev client — not a plain browser.
+> The prod API URL above is the quickest path to a working device test.
+
+### Other targets
+
+```bash
+pnpm --filter @tuition/mobile ios         # iOS simulator (later)
+pnpm --filter @tuition/mobile web         # PWA in the browser (no camera/NFC)
+pnpm --filter @tuition/mobile typecheck
+```
 
 ## Monorepo notes
 
@@ -68,9 +86,12 @@ IP (e.g. `http://192.168.1.x:8787`) and add that origin to the API's
 - The PWA uses `expo-sqlite` (wa-sqlite/WASM); serving it needs cross-origin
   isolation headers (`COOP: same-origin`, `COEP: require-corp`).
 
-## Not yet implemented
+## Notes
 
-- **Native NFC** (`react-native-nfc-manager`) needs a custom dev client and is
-  deferred; QR + manual search cover door check-in today. Web NFC can be layered
-  on the web target later.
-- Push notifications (M5) are out of scope here.
+- **NFC** (`react-native-nfc-manager`) is wired into the check-in screen (an NFC
+  tab appears when the device supports it). It needs a **dev client** build, not
+  Expo Go; with the default isolated pnpm linker, add a root `.npmrc` with
+  `node-linker=hoisted` and reinstall before the native build.
+- Push notifications (M5) are out of scope for this app.
+- The **student / guardian** experience (home, attendance, fees, timetable,
+  digital card, notifications) is a separate, future app surface.
